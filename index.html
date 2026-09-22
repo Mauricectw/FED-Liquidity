@@ -222,13 +222,13 @@ const ST = {g:'綠', y:'黃', r:'紅', m:'融漲', n:'待填'};
 /* ================= 紅線 SOP：各燈號該做的事（滑鼠移過去即可看到） ================= */
 const SOP = {
   g: {label:'🟢 綠色（常態）',
-      text:'儀表盤 13 項指標均未觸發警戒。\n\n動作：正常定期投入、每週看一次儀表盤就好，不需額外操作。可以趁平時先把「核心倉位」與「投機倉位」分類標註好，之後黃/紅燈時比較好照著做。'},
+      text:'加權撤出指數 < 25。\n\n動作：正常定期投入、每週看一次儀表盤就好，不需額外操作。可以趁平時先把「核心倉位」與「投機倉位」分類標註好，之後黃/紅燈時比較好照著做。'},
   y: {label:'🟡 黃色（分散注意）',
-      text:'對應撤出指數 50–74，或單一指標亮黃燈。\n\n動作：改成每日看一次儀表盤。先把「投機倉位」削減一定比例（例如先減一半），開始建立小量避險（例如買 put 選擇權或 VIX 相關工具）。逐步提高現金比重，不用一次到位。'},
+      text:'加權撤出指數 25–74。\n\n動作：改成每日看一次儀表盤。先把「投機倉位」削減一定比例（例如先減一半），開始建立小量避險（例如買 put 選擇權或 VIX 相關工具）。逐步提高現金比重，不用一次到位。下方「逐步撤出參考指數」的階段一/二會告訴你目前該做到哪一步。'},
   r: {label:'🔴 紅色（存活優先）＝啟動紅線 SOP',
-      text:'對應撤出指數 ≥75，或 2 個以上指標同時亮紅燈。\n\n動作：只留「核心倉位」，其餘全部或大部分換成現金或短期國債。已建立的避險部位比重拉高。設一個硬性規則（例如現金比重不得低於某個百分比），避免臨場情緒化猶豫。\n\n解除條件（雙重確認，避免假訊號就急著買回）：準備金重新站回 3.0T 以上且連續 2 週，同時 HY OAS 回到 350bp 以下，才視為警報解除、依序退回黃色再回綠色。\n\n執行前先確認：燈號變色當天先不動作，隔天開盤前用前一日收盤數字再確認一次，才照 SOP 執行，避免盤中情緒化操作。執行後記得按一下下方「記今日快照」留紀錄。'},
+      text:'加權撤出指數 ≥75。\n\n動作：只留「核心倉位」，其餘全部或大部分換成現金或短期國債。已建立的避險部位比重拉高。設一個硬性規則（例如現金比重不得低於某個百分比），避免臨場情緒化猶豫。\n\n解除條件（雙重確認，避免假訊號就急著買回）：加權撤出指數連續 2 週回到 25 分以下，同時 HY OAS 回到 350bp 以下，才視為警報解除、依序退回黃色再回綠色。\n\n執行前先確認：燈號變色當天先不動作，隔天開盤前用前一日收盤數字再確認一次，才照 SOP 執行，避免盤中情緒化操作。執行後記得按一下下方「記今日快照」留紀錄。'},
   m: {label:'🟣 融漲（特殊過熱狀態）',
-      text:'既非紅也非黃：NDX 乖離過大且 Put/Call 過低，屬於「向上失控」的警報。\n\n動作：不追高、不加碼。改用移動停利逐步鎖定獲利，不要一次性全部清倉。這個狀態常是黃/紅到反轉之間的過渡，心理上要準備現金比重可能很快又要隨機應變。'}
+      text:'既非紅也非黃：NDX 乖離過大且 Put/Call 過低，屬於「向上失控」的警報，跟撤出指數是不同方向的訊號。\n\n動作：不追高、不加碼。改用移動停利逐步鎖定獲利，不要一次性全部清倉。這個狀態常是黃/紅到反轉之間的過渡，心理上要準備現金比重可能很快又要隨機應變。'}
 };
 
 const IND = [
@@ -349,12 +349,12 @@ function overall(){
   if(V.res!=null && V.res<2.5) return ['r','☠ 終極死亡訊號 — 準備金跌破 2.5 兆美元：系統性流動性斷裂風險，全面防禦模式'];
   const gm = IND[5].judge(V.ndx);
   if(gm==='m') return ['m','🔥 Gamma 軋空 · 融漲點火 — 向上失控段啟動：末段行情，嚴設移動停利、禁止追高加碼'];
-  const states = IND.concat(IND2).map(stateOf);
-  const r = states.filter(s=>s==='r').length, y = states.filter(s=>s==='y').length;
-  if(r>=2) return ['r','🔴 紅色警戒 — 多重指標觸發（'+r+' 紅 / '+y+' 黃）：啟動紅線 SOP'];
-  if(r===1||y>=3) return ['y','🟡 黃色警戒 — 流動性進入灰色地帶（'+r+' 紅 / '+y+' 黃）：啟動黃線 SOP，提高監控頻率至每日'];
-  if(states.every(s=>s==='n')) return ['y','⚪ 資料未載入 — 請抓取或填入數值'];
-  return ['g','🟢 綠色 — 流動性環境正常，維持既定配置，每週四檢查 H.4.1'];
+  const {score, worst} = exitScore();
+  if(score==null) return ['y','⚪ 資料未載入 — 請抓取或填入數值'];
+  const flag = worst.length ? '（觸發：'+worst.join('、')+'）' : '';
+  if(score>=75) return ['r','🔴 紅色警戒 — 加權撤出指數 '+score+'/100：啟動紅線 SOP'+flag];
+  if(score>=25) return ['y','🟡 黃色警戒 — 加權撤出指數 '+score+'/100：啟動黃線 SOP，提高監控頻率至每日'+flag];
+  return ['g','🟢 綠色 — 加權撤出指數 '+score+'/100：流動性環境正常，維持既定配置，每週四檢查 H.4.1'];
 }
 
 function render(){
@@ -376,7 +376,7 @@ function render(){
     const card = document.createElement('div');
     card.className = 'card '+s;
     const assess = s==='n' ? '目前評估：尚未載入數值，請抓取或手動填入。' :
-                   '目前評估：'+SOP[s].label+'\n'+SOP[s].text;
+                   '目前評估：此指標單獨為 '+ST[s]+'燈（見左側自身警戒線）。\n這只是 13 項指標之一，不代表要單獨依這一項採取行動 —— 實際是否啟動 SOP、動作到哪個階段，請以最上方總覽燈號與「加權撤出指數」為準。';
     let pcExtra = ind.k==='ndx' ? `<div class="unit" style="margin-top:6px">Put/Call：<input style="width:70px;font-family:var(--mono);background:var(--panel2);border:1px solid var(--edge);border-radius:6px;color:var(--ink);padding:2px 6px" type="number" step="0.01" value="${V.pc??''}" onchange="setV('pc',this.value)"></div>` : '';
     card.innerHTML = `
       <div class="top"><div class="name">${ind.no}. ${ind.name}</div><div class="badge ${s}">${ST[s]}</div></div>
@@ -399,7 +399,7 @@ function render(){
       <td class="mono">${ind.no}</td><td><b>${ind.name}</b></td><td>${ind.src}</td>
       <td class="cg">${ind.green}</td><td class="cy">${ind.yellow}</td><td class="cr">${ind.red}</td>
       <td class="mono">${fmt(ind.k,V[ind.k])} ${V[ind.k]!=null?ind.unit:''}</td>
-      <td class="b c${s==='m'?'m':s}" title="${s==='n'?'尚未載入數值':SOP[s].label+'\n\n'+SOP[s].text}" style="cursor:help">${{g:'🟢 綠',y:'🟡 黃',r:'🔴 紅',m:'🟣 融漲',n:'⚪ 待填'}[s]}</td></tr>`);
+      <td class="b c${s==='m'?'m':s}" title="${s==='n'?'尚未載入數值':'此指標單獨為'+ST[s]+'燈（見左側自身警戒線），只是 13 項之一。實際是否啟動 SOP，請以最上方總覽燈號與加權撤出指數為準。'}" style="cursor:help">${{g:'🟢 綠',y:'🟡 黃',r:'🔴 紅',m:'🟣 融漲',n:'⚪ 待填'}[s]}</td></tr>`);
   });
   renderExit();
   renderLog();
