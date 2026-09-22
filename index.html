@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> FED Liquidity Watching（H.4.1 準備金 / TGA / Gamma）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1520; --panel:#16202E; --panel2:#121A26; --edge:#223146;
+    --ink:#E9EEF5; --muted:#8FA0B5; --faint:#5C6B80;
+    --green:#35D49A; --amber:#FFB320; --red:#FF5A5A; --cyan:#5AC8E8; --violet:#B58CFF;
+    --mono:'IBM Plex Mono',Consolas,monospace; --sans:'Noto Sans TC',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;padding:20px 16px 60px}
+  .wrap{max-width:1180px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;border-bottom:1px solid var(--edge);padding-bottom:14px;margin-bottom:16px}
+  header h1{font-size:22px;font-weight:900;letter-spacing:.04em}
+  header h1 span{color:var(--cyan)}
+  .asof{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+  #regimeBanner{margin:14px 0 18px;border-radius:10px;padding:14px 18px;font-weight:700;font-size:15px;
+    border:1px solid var(--edge);background:var(--panel);display:flex;align-items:center;gap:12px;transition:all .35s;
+    position:relative;cursor:help}
+  #regimeBanner .tip{left:0;right:0;top:calc(100% + 6px);white-space:pre-line;font-weight:400}
+  #regimeBanner:hover .tip{opacity:1;visibility:visible;transform:translateY(0)}
+  .exitgauge{position:relative;cursor:help}
+  .exitgauge .tip{left:0;right:0;top:calc(100% + 6px);white-space:pre-line;font-weight:400}
+  .exitgauge:hover .tip{opacity:1;visibility:visible;transform:translateY(0)}
+  .exitgauge:hover{z-index:25}
+  .exitgauge .tip table{background:none;border:none;margin-top:6px;font-size:12px}
+  .exitgauge .tip td{padding:3px 8px;border-bottom:1px solid var(--edge)}
+  #regimeHint{font-weight:400;font-size:11.5px;color:var(--muted);margin-left:auto;flex:none}
+  #regimeBanner .dot{width:14px;height:14px;border-radius:50%;flex:none}
+  #regimeBanner.g{border-color:rgba(53,212,154,.5)} #regimeBanner.g .dot{background:var(--green);box-shadow:0 0 12px var(--green)}
+  #regimeBanner.y{border-color:rgba(255,179,32,.55);background:rgba(255,179,32,.06)} #regimeBanner.y .dot{background:var(--amber);box-shadow:0 0 12px var(--amber)}
+  #regimeBanner.r{border-color:rgba(255,90,90,.65);background:rgba(255,90,90,.08);animation:pulse 1.2s infinite} #regimeBanner.r .dot{background:var(--red);box-shadow:0 0 14px var(--red)}
+  #regimeBanner.m{border-color:rgba(181,140,255,.65);background:linear-gradient(90deg,rgba(181,140,255,.10),rgba(255,179,32,.10));animation:pulse 1.2s infinite} #regimeBanner.m .dot{background:var(--violet);box-shadow:0 0 14px var(--violet)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,90,90,0)}50%{box-shadow:0 0 0 6px rgba(255,90,90,.10)}}
+
+  /* ---------- 準備金水位計（signature） ---------- */
+  .gauge{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:18px 20px 26px;margin-bottom:20px}
+  .gauge h2{font-size:14px;color:var(--muted);font-weight:500;letter-spacing:.12em;margin-bottom:4px}
+  .gauge .big{font-family:var(--mono);font-size:34px;font-weight:600}
+  .gauge .big small{font-size:15px;color:var(--muted)}
+  .rail{position:relative;height:14px;border-radius:7px;margin:22px 6px 8px;
+    background:linear-gradient(90deg,var(--red) 0%,var(--red) 23%,var(--amber) 23%,var(--amber) 61.5%,var(--green) 61.5%,var(--green) 100%);opacity:.9}
+  .rail .needle{position:absolute;top:-9px;width:4px;height:32px;background:var(--ink);border-radius:2px;box-shadow:0 0 10px rgba(233,238,245,.7);transition:left .6s cubic-bezier(.2,.8,.2,1)}
+  .rail .mark{position:absolute;top:20px;transform:translateX(-50%);font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+  .rail .mark::before{content:"";position:absolute;left:50%;top:-22px;width:1px;height:18px;background:var(--faint)}
+  .gauge .legend{display:flex;gap:18px;margin-top:26px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .legend b{font-family:var(--mono)}
+  .legend .r{color:var(--red)} .legend .y{color:var(--amber)} .legend .g{color:var(--green)}
+
+  /* ---------- controls ---------- */
+  .ctrl{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+  button{font-family:var(--sans);font-size:13px;font-weight:700;padding:9px 14px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--edge);background:var(--panel);color:var(--ink);transition:.15s}
+  button:hover{border-color:var(--cyan);transform:translateY(-1px)}
+  button.warn{border-color:rgba(255,90,90,.5);color:var(--red)}
+  button.melt{border-color:rgba(181,140,255,.5);color:var(--violet)}
+  button.go{border-color:rgba(90,200,232,.5);color:var(--cyan)}
+  .note{font-size:12px;color:var(--faint);margin:-8px 0 18px}
+
+  /* ---------- cards ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:26px}
+  .card{position:relative;background:var(--panel);border:1px solid var(--edge);border-left:5px solid var(--faint);
+    border-radius:10px;padding:14px 16px;transition:border-color .3s}
+  .card.g{border-left-color:var(--green)} .card.y{border-left-color:var(--amber)}
+  .card.r{border-left-color:var(--red);animation:pulse 1.4s infinite} .card.m{border-left-color:var(--violet);animation:pulse 1.4s infinite}
+  .card .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .card .name{font-size:14px;font-weight:700}
+  .badge{font-size:11px;font-weight:900;padding:2px 9px;border-radius:20px;letter-spacing:.08em;flex:none}
+  .badge.g{background:rgba(53,212,154,.14);color:var(--green)} .badge.y{background:rgba(255,179,32,.16);color:var(--amber)}
+  .badge.r{background:rgba(255,90,90,.16);color:var(--red)} .badge.m{background:rgba(181,140,255,.18);color:var(--violet)}
+  .badge.n{background:rgba(92,107,128,.2);color:var(--muted)}
+  .card .val{font-family:var(--mono);font-size:24px;font-weight:600;margin:8px 0 2px}
+  .card .val input{font-family:var(--mono);font-size:22px;font-weight:600;width:120px;background:var(--panel2);
+    border:1px solid var(--edge);border-radius:6px;color:var(--ink);padding:2px 8px}
+  .card .unit{font-size:12px;color:var(--muted)} .card .src{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:6px}
+  /* hover tooltip */
+  .tip{position:absolute;z-index:30;left:8px;right:8px;top:calc(100% - 6px);background:#0B111B;border:1px solid var(--cyan);
+    border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--ink);box-shadow:0 14px 34px rgba(0,0,0,.6);
+    opacity:0;visibility:hidden;transform:translateY(-4px);transition:.18s;pointer-events:none}
+  .card:hover .tip{opacity:1;visibility:visible;transform:translateY(0)}
+  .card:hover{z-index:20}
+  .tip .t1{color:var(--cyan);font-weight:700;margin-bottom:4px}
+  .tip .t2{color:var(--muted);margin-bottom:8px}
+  .tip .t3{padding-top:8px;border-top:1px dashed var(--edge);white-space:pre-line}
+  .tip .t3 b.g{color:var(--green)} .tip .t3 b.y{color:var(--amber)} .tip .t3 b.r{color:var(--red)} .tip .t3 b.m{color:var(--violet)}
+
+  /* ---------- tables ---------- */
+  h3.sec{font-size:15px;letter-spacing:.1em;color:var(--muted);font-weight:700;margin:26px 0 10px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--edge);border-radius:10px;overflow:hidden;font-size:12.5px}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--edge);text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:var(--muted);font-weight:700;font-size:11.5px;letter-spacing:.06em;white-space:nowrap}
+  td.mono{font-family:var(--mono)}
+  td .b{font-weight:900} .cg{color:var(--green)} .cy{color:var(--amber)} .cr{color:var(--red)} .cm{color:var(--violet)}
+  .tblwrap{overflow-x:auto}
+  #logEmpty{color:var(--faint);font-size:12.5px;padding:10px}
+
+  footer{margin-top:34px;border-top:1px solid var(--edge);padding-top:14px;font-size:11.5px;color:var(--faint)}
+  @media (max-width:640px){ header h1{font-size:18px} .gauge .big{font-size:26px} }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1> <span>LIQUIDITY WAR ROOM</span></h1>
+  <div class="asof">資料基準：<span id="asof">2026-07-01（H.4.1 週均）</span></div>
+</header>
+
+<div id="regimeBanner" class="y"><div class="dot"></div><div id="regimeText">—</div><div id="regimeHint">🖱️ 滑鼠移到這裡看該做什麼</div>
+  <div class="tip"><div class="t1" id="regimeTipTitle">—</div><div class="t2" id="regimeTipText">—</div></div>
+</div>
+
+<!-- 準備金水位計 -->
+<div class="gauge">
+  <h2>核心指標｜銀行準備金餘額（H.4.1 表1 · Reserve balances with Federal Reserve Banks）</h2>
+  <div class="big"><span id="gaugeVal">—</span> <small>兆美元</small></div>
+  <div class="rail" id="rail">
+    <div class="needle" id="needle"></div>
+    <div class="mark" style="left:23%">2.50T 紅色警戒（終極死亡訊號）</div>
+    <div class="mark" style="left:61.5%">3.00T 黃色警戒</div>
+  </div>
+  <div class="legend">
+    <div><b class="r">&lt; 2.50T</b>｜紅：系統性資金斷裂風險（2019/9 repo 危機翻版）</div>
+    <div><b class="y">2.50–3.00T</b>｜黃：進入「最低充足準備金」灰色地帶</div>
+    <div><b class="g">&gt; 3.00T</b>｜綠：準備金充足（Ample Reserves）</div>
+  </div>
+</div>
+
+<!-- 逐步撤出參考指數 -->
+<div class="gauge exitgauge">
+  <h2>逐步撤出參考指數｜13 項指標加權合成（每週檢視一次即可） <span style="font-size:11.5px;font-weight:400;color:var(--muted);letter-spacing:0">🖱️ 滑鼠移到這裡看分數怎麼來的</span></h2>
+  <div class="big"><span id="exitVal">—</span> <small>/ 100</small>
+    <span id="exitStage" style="font-size:15px;font-weight:700;margin-left:14px"></span></div>
+  <div class="rail" id="exitRail" style="background:linear-gradient(90deg,var(--green) 0%,var(--green) 25%,var(--amber) 25%,var(--amber) 50%,#FF8A3C 50%,#FF8A3C 75%,var(--red) 75%,var(--red) 100%)">
+    <div class="needle" id="exitNeedle"></div>
+    <div class="mark" style="left:25%">25 階段一</div>
+    <div class="mark" style="left:50%">50 階段二</div>
+    <div class="mark" style="left:75%">75 階段三</div>
+  </div>
+  <div class="legend">
+    <div><b class="g">0–25</b>｜維持既定配置，每週四看 H.4.1</div>
+    <div><b class="y">25–50</b>｜階段一：停止加碼＋移動停利（倉位參考 75%）</div>
+    <div><b style="color:#FF8A3C">50–75</b>｜階段二：減至半倉＋建立對沖</div>
+    <div><b class="r">75–100</b>｜階段三：核心以外撤出，現金短債為主</div>
+  </div>
+  <div class="legend" style="margin-top:8px"><div id="exitDetail" style="color:var(--faint)">—</div></div>
+  <div class="tip"><div class="t1">逐步撤出參考指數｜這個分數怎麼來的</div><div class="t2" id="exitTipText">—</div><div id="exitTipTable"></div></div>
+</div>
+
+<!-- 控制列 -->
+<div class="ctrl">
+  <button class="go" onclick="fetchLive()">⟳ 抓取最新資料（TGA 即時 / data.json）</button>
+  <button onclick="snapshot()">📌 記錄今日快照</button>
+  <button onclick="exportLog()">⬇ 匯出追蹤紀錄 JSON</button>
+  <button class="warn" onclick="applyScenario('death')">☠ 測試：終極死亡訊號</button>
+  <button class="melt" onclick="applyScenario('melt')">🔥 測試：Gamma 軋空融漲點火</button>
+  <button onclick="applyScenario('reset')">↺ 還原實際數值</button>
+</div>
+<div class="note" id="fetchNote">每個交易日開啟本頁 → 按「抓取最新資料」→ 按「記錄今日快照」。TGA 由美國財政部 FiscalData API 直接即時抓取；其餘 FRED 序列、NDX 50日乖離（Stooq）與股權 P/C（CBOE）由隨附的 fetch_liquidity.py 每日排程寫入 data.json 後自動載入，並可經 LINE Messaging API / Webhook 推送警報。所有數值亦可直接在卡片上手動修改。</div>
+
+<!-- 七卡片 -->
+<div class="grid" id="grid"></div>
+
+<h3 class="sec">交易台進階指標 · 華爾街視角（8–13）</h3>
+<div class="grid" id="grid2"></div>
+
+<!-- 對照表 -->
+<h3 class="sec">七儀表盤 · 觸發狀態對照表</h3>
+<div class="tblwrap">
+<table id="matrix">
+  <thead><tr><th>#</th><th>指標</th><th>資料來源 / 頻率</th><th class="cg">綠色（安全）</th><th class="cy">黃色（警戒）</th><th class="cr">紅色（觸發）</th><th>目前數值</th><th>狀態</th></tr></thead>
+  <tbody></tbody>
+</table>
+</div>
+
+<!-- 每日追蹤 -->
+<h3 class="sec">每日追蹤紀錄（每個交易日一筆）</h3>
+<div class="tblwrap">
+<table id="log">
+  <thead><tr><th>日期</th><th>準備金(T)</th><th>TGA(B)</th><th>RRP(B)</th><th>SOFR−IORB(bp)</th><th>HY OAS(bp)</th><th>NDX乖離(%)</th><th>P/C</th><th>ETF週流入(B)</th><th>撤出指數</th><th>整體狀態</th></tr></thead>
+  <tbody></tbody>
+</table>
+</div>
+<div id="logEmpty">尚無紀錄 — 按上方「記錄今日快照」開始追蹤。若在本機以檔案開啟，紀錄會自動保存在瀏覽器；在 Claude 預覽中僅保存於本次工作階段，請用「匯出」備份。</div>
+
+<h3 class="sec">銀行準備金餘額 · 十年長期追蹤（FRED: WRESBAL，週頻）</h3>
+<div class="gauge" style="position:relative;height:360px;padding:16px">
+  <button onclick="resetZoom()" style="position:absolute;right:14px;top:12px;z-index:5">重置縮放</button>
+  <canvas id="histChart" ondblclick="resetZoom()"></canvas>
+</div>
+<div class="note" id="histNote">歷史數據載入中…</div>
+
+<footer>
+  <p>本儀表盤為總體流動性「風險狀態機」教學工具，門檻值為框架性參考（依 2026 年 QT 後準備金結構設定），非投資建議。準備金正式數字每週四美東 16:30（台灣週五凌晨）由 Fed H.4.1 發布；週間以 TGA / RRP 每日變化推估方向：Δ準備金 ≈ −ΔTGA − ΔRRP − QT 到期量。</p>
+</footer>
+</div>
+
+<script>
+/* ================= 指標定義 ================= */
+const ACTUAL = {           // 2026-07 初真實基準值
+  res:  2.967,             // 兆美元, H.4.1 2026-07-01 週均
+  tga:  919,               // 十億美元, 2026-06-24
+  rrp:  2,                 // 十億美元
+  sofr: -1,                // SOFR-IORB, bp, 2026-06-25
+  hy:   null,              // HY OAS bp（由 data.json / 手動填入）
+  ndx:  null,              // NDX 相對 50 日均線乖離 %
+  pc:   null,              // 股權 Put/Call
+  etf:  null,              // 被動 ETF 單週淨流入 (十億美元)
+  srf:  null, s99: null,   // SRF 使用量(B) / SOFR P99−IORB(bp)
+  nlq:  null, nlqd: null,  // 淨流動性(T) / 13週變化(B)
+  move: null, vixr: null,  // MOVE / VIX÷VIX3M
+  rsp:  null, rsp_sig: null// RSP/SPY 比值與訊號
+};
+let V = {...ACTUAL};
+let LIVE = null;          // 最近一次自動抓取到的真實數值（還原時用這份，不用上面的舊基準）
+let scenarioMode = 'actual';
+
+const ST = {g:'綠', y:'黃', r:'紅', m:'融漲', n:'待填'};
+
+/* ================= 紅線 SOP：各燈號該做的事（滑鼠移過去即可看到） ================= */
+const SOP = {
+  g: {label:'🟢 綠色（常態）',
+      text:'加權撤出指數 < 25。\n\n動作：正常定期投入、每週看一次儀表盤就好，不需額外操作。可以趁平時先把「核心倉位」與「投機倉位」分類標註好，之後黃/紅燈時比較好照著做。'},
+  y: {label:'🟡 黃色（分散注意）',
+      text:'加權撤出指數 25–74。\n\n動作：改成每日看一次儀表盤。先把「投機倉位」削減一定比例（例如先減一半），開始建立小量避險（例如買 put 選擇權或 VIX 相關工具）。逐步提高現金比重，不用一次到位。下方「逐步撤出參考指數」的階段一/二會告訴你目前該做到哪一步。'},
+  r: {label:'🔴 紅色（存活優先）＝啟動紅線 SOP',
+      text:'加權撤出指數 ≥75。\n\n動作：只留「核心倉位」，其餘全部或大部分換成現金或短期國債。已建立的避險部位比重拉高。設一個硬性規則（例如現金比重不得低於某個百分比），避免臨場情緒化猶豫。\n\n解除條件（雙重確認，避免假訊號就急著買回）：加權撤出指數連續 2 週回到 25 分以下，同時 HY OAS 回到 350bp 以下，才視為警報解除、依序退回黃色再回綠色。\n\n執行前先確認：燈號變色當天先不動作，隔天開盤前用前一日收盤數字再確認一次，才照 SOP 執行，避免盤中情緒化操作。執行後記得按一下下方「記今日快照」留紀錄。'},
+  m: {label:'🟣 融漲（特殊過熱狀態）',
+      text:'既非紅也非黃：NDX 乖離過大且 Put/Call 過低，屬於「向上失控」的警報，跟撤出指數是不同方向的訊號。\n\n動作：不追高、不加碼。改用移動停利逐步鎖定獲利，不要一次性全部清倉。這個狀態常是黃/紅到反轉之間的過渡，心理上要準備現金比重可能很快又要隨機應變。'}
+};
+
+const IND = [
+ {k:'res', no:1, name:'銀行準備金餘額', unit:'兆美元', step:0.01,
+  src:'Fed H.4.1 表1 / FRED: WRESBAL · 每週四',
+  green:'> 3.0T', yellow:'2.5 – 3.0T', red:'< 2.5T ＝ 終極死亡訊號',
+  mean:'銀行體系停泊在 Fed 的現金總量，整個金融系統的「血液存量」。QT 縮表＋TGA 發債抽水都直接從這裡扣血。',
+  judge:v=> v==null?'n': v<2.5?'r': v<3.0?'y':'g'},
+ {k:'tga', no:2, name:'財政部 TGA 餘額', unit:'十億美元', step:1,
+  src:'FiscalData DTS（每日T+1）/ H.4.1',
+  green:'< 750B 且平穩', yellow:'750B–1,000B 或單週急增 >100B', red:'> 1,000B 且持續回補（抽水機全開）',
+  mean:'財政部在 Fed 的支票帳戶。TGA 每上升 $1，準備金約下降 $1 —— 是週間最好用的「每日抽水量」代理指標。',
+  judge:v=> v==null?'n': v>1000?'r': v>750?'y':'g'},
+ {k:'rrp', no:3, name:'ON RRP 逆回購餘額', unit:'十億美元', step:1,
+  src:'NY Fed / FRED: RRPONTSYD · 每日',
+  green:'> 100B（尚有緩衝墊）', yellow:'10 – 100B', red:'< 10B ＝ 緩衝耗盡，抽水直接打在準備金上',
+  mean:'貨幣基金停泊的閒錢，QT 的第一道緩衝墊。2026 年已近歸零：代表 TGA 回補與縮表的每一塊錢都改由準備金硬扛。',
+  judge:v=> v==null?'n': v<10?'r': v<100?'y':'g'},
+ {k:'sofr', no:4, name:'SOFR − IORB 利差', unit:'bp', step:1,
+  src:'FRED: SOFR / IORB · 每日',
+  green:'< 0 bp', yellow:'0 ～ +15 bp 且連續多日', red:'> +25 bp 尖峰（回購市場搶錢）',
+  mean:'銀行間隔夜抵押借錢成本 vs. 把錢躺在 Fed 的利率。轉正且飆升＝現金稀缺、資金管路（plumbing）開始尖叫，是 2019/9 危機的當日訊號。',
+  judge:v=> v==null?'n': v>25?'r': v>=0?'y':'g'},
+ {k:'hy', no:5, name:'高收益債利差 HY OAS', unit:'bp', step:5,
+  src:'FRED: BAMLH0A0HYM2 · 每日',
+  green:'< 350 bp', yellow:'350 – 450 bp 走擴', red:'> 450 bp 急擴（信用市場先跑）',
+  mean:'垃圾債 vs. 公債的風險貼水。股市融漲時它常率先背離走擴 —— 信用市場是聞到煙味最早離場的人。',
+  judge:v=> v==null?'n': v>450?'r': v>350?'y':'g'},
+ {k:'ndx', no:6, name:'Gamma 軋空 / 融漲點火', unit:'% (NDX 50日乖離)', step:0.1,
+  src:'NDX 乖離：Stooq 自動 ｜ P/C：CBOE 半自動 · 每日',
+  green:'乖離 < 5%', yellow:'5 – 8% 或 P/C < 0.60', red:'> 8% 且 P/C < 0.55 ＝ 融漲點火（紫色警報：向上失控）',
+  mean:'散戶掃 Call → 做市商被迫追買現貨對沖（正回饋）。這是「向上」的紅色警報：點火後行情最瘋、但離頂也最近，波動率與指數同步上升是末段特徵。',
+  judge:v=> v==null?'n': (v>8 && V.pc!=null && V.pc<0.55)?'m': (v>5||(V.pc!=null&&V.pc<0.60))?'y':'g'},
+ {k:'etf', no:7, name:'被動 ETF 資金流', unit:'十億美元/週', step:0.5,
+  src:'QQQ 流通股數週變化 × 價格 · 自動（Yahoo，首週累積中）｜可手動覆寫',
+  green:'正常區間（<15B）', yellow:'單週流入 15–25B 創數月新高', red:'> 25B 極端流入＋指數 RSI>75（機械買盤過熱）',
+  mean:'401(k) 與指數基金的無腦機械買盤。此欄以 QQQ 流通股數週變化×價格自動估算實質申購流入（股數增加＝一級市場申購，即 ETF flow 的定義）。極端流入＝最後的買家正在進場。',
+  judge:v=> v==null?'n': v>25?'r': v>15?'y':'g'}
+];
+
+const IND2 = [
+ {k:'srf', no:8, name:'SRF 常備回購使用量', unit:'十億美元', step:1,
+  src:'FRED: RPONTSYD · 每日',
+  green:'< 5B（後門無人問津）', yellow:'5 – 50B 持續使用', red:'> 50B（交易商排隊敲 Fed 後門）',
+  mean:'2019 危機後設立的常備後門：交易商借不到錢時拿公債向 Fed 換現金。沒人願意用後門，除非前門已擠不進去——使用量跳升是準備金不足最早、最明確的「行為證據」，領先價格訊號。',
+  judge:v=> v==null?'n': v>50?'r': v>5?'y':'g'},
+ {k:'s99', no:9, name:'SOFR P99 − IORB 利差', unit:'bp', step:1,
+  src:'FRED: SOFR99 / IORB · 每日',
+  green:'< 5 bp', yellow:'5 – 20 bp', red:'> 20 bp（分布尾端刺穿走廊）',
+  mean:'資金壓力永遠先出現在分布尾端：中位數歲月靜好時，第99百分位早已飆升——邊緣借款人先付出代價，然後才輪到所有人。把警報從「全面著火」提前到「聞到煙味」。',
+  judge:v=> v==null?'n': v>20?'r': v>=5?'y':'g'},
+ {k:'nlq', no:10, name:'淨流動性（Fed資產−TGA−RRP）', unit:'兆美元', step:0.01,
+  src:'FRED: WALCL−WTREGEN−WLRRAL · 每週',
+  green:'13週變化 > −100B', yellow:'13週流失 100–300B', red:'13週流失 > 300B（抽水加速）',
+  mean:'華爾街最著名的單一流動性數字，與 S&P 500 長期同步。把 QT、TGA、RRP 三條抽水管合併成一個水位——狀態依 13 週變化速度判定，不看絕對值。',
+  judge:v=>{ if(v==null) return 'n'; if(V.nlqd==null) return 'g';
+             return V.nlqd<-300?'r': V.nlqd<-100?'y':'g'; }},
+ {k:'move', no:11, name:'MOVE 公債波動率指數', unit:'', step:1,
+  src:'Yahoo: ^MOVE · 每日',
+  green:'< 100', yellow:'100 – 130', red:'> 130（抵押品地基晃動）',
+  mean:'公債是整個體系的抵押品地基。MOVE 飆升＝同一張公債能借到的錢變少（haircut 上調）→ 交易商風險預算收縮 → 全市場被動去槓桿。MOVE 是因，VIX 常常只是果。',
+  judge:v=> v==null?'n': v>130?'r': v>=100?'y':'g'},
+ {k:'vixr', no:12, name:'VIX ÷ VIX3M 期限結構', unit:'', step:0.01,
+  src:'Yahoo: ^VIX / ^VIX3M · 每日',
+  green:'< 0.90（正常 contango）', yellow:'0.90 – 1.00', red:'> 1.00 倒掛（恐慌前置）',
+  mean:'正常市場遠月保險比近月貴。比值站上 1＝市場願為「現在」付出比「三個月後」更高的保險費。與 Gamma 點火互為確認器：點火＋比值仍低＝行情可騎；點火＋比值急升逼近 1＝末段的末段。',
+  judge:v=> v==null?'n': v>1.0?'r': v>=0.90?'y':'g'},
+ {k:'rsp', no:13, name:'RSP/SPY 市場寬度', unit:'比值', step:0.001,
+  src:'Yahoo: RSP÷SPY · 每日（訊號由後端計算）',
+  green:'寬度正常', yellow:'比值創3月新低', red:'比值新低 且 SPY 貼近新高（指數創高、士兵陣亡）',
+  mean:'融漲末段教科書特徵：七巨頭撐指數、等權重先趴。RSP/SPY 破底而 SPY 創高＝被動買盤只灌前幾大權值股的直接證據，與被動 ETF 流量互為表裡。',
+  judge:v=> v==null?'n': (V.rsp_sig||'n')}
+];
+
+/* ================= 額外欄位：P/C ================= */
+/* P/C 併入 Gamma 卡片內顯示，另給小輸入框 */
+
+/* ================= 渲染 ================= */
+const fmt = (k,v)=> v==null ? '—' :
+  (k==='vixr') ? v.toFixed(2) : (k==='rsp') ? v.toFixed(3) : (k==='nlq') ? v.toFixed(2) :
+  k==='res' ? v.toFixed(3) : k==='ndx' ? v.toFixed(1) : k==='pc' ? v.toFixed(2) : Math.round(v).toLocaleString();
+
+function stateOf(ind){ return ind.judge(V[ind.k]); }
+
+const EXIT_W = {res:20,srf:14,nlq:12,s99:8,hy:8,sofr:6,move:6,vixr:6,rsp:6,tga:4,rrp:4,ndx:3,etf:3};
+function exitScore(){
+  const all = IND.concat(IND2);
+  let num=0, den=0, worst=[];
+  for(const [k,w] of Object.entries(EXIT_W)){
+    const ind = all.find(i=>i.k===k); if(!ind) continue;
+    const st = stateOf(ind);
+    if(st==='n') continue;
+    const s = (st==='r'||st==='m') ? 1 : (st==='y' ? 0.5 : 0);
+    num += s*w; den += w;
+    if(s===1) worst.push(ind.name);
+  }
+  if(den===0) return {score:null, worst};
+  let score = Math.round(num/den*100);
+  if((V.res!=null && V.res<2.5) || (V.srf!=null && V.srf>50)) score = Math.max(score,80);
+  return {score, worst};
+}
+function renderExit(){
+  const {score, worst} = exitScore();
+  document.getElementById('exitVal').textContent = score==null?'—':score;
+  document.getElementById('exitNeedle').style.left = score==null?'0%':'calc('+score+'% - 2px)';
+  const stage = score==null?['','']:
+    score>=75?['階段三：核心以外撤出','var(--red)']:
+    score>=50?['階段二：減至半倉＋對沖','#FF8A3C']:
+    score>=25?['階段一：停止加碼＋移動停利','var(--amber)']:
+              ['維持既定配置','var(--green)'];
+  const el = document.getElementById('exitStage');
+  el.textContent = stage[0]; el.style.color = stage[1];
+  document.getElementById('exitDetail').textContent = score==null?'—':
+    (worst.length? '目前紅色觸發：'+worst.join('、')+'（權重已計入）':'目前無紅色觸發項') +
+    '　｜　缺值指標自動剔除並重新歸一化；準備金<2.5T 或 SRF>50B 時硬觸發鎖定 80 分以上';
+  renderExitTip(score);
+}
+function renderExitTip(score){
+  const all = IND.concat(IND2);
+  let den = 0, rows = [], missing = [];
+  for(const [k,w] of Object.entries(EXIT_W)){
+    const ind = all.find(i=>i.k===k); if(!ind) continue;
+    const st = stateOf(ind);
+    if(st==='n'){ missing.push(ind.name); continue; }
+    den += w; rows.push({ind, st, w, s:(st==='r'||st==='m')?1:(st==='y'?0.5:0)});
+  }
+  const mode = scenarioMode==='actual' ? '✅ 目前顯示的是「今天的實際資料」。'
+             : '⚠ 目前顯示的是「測試情境或手動修改的數值」，不是真實資料！按下方「↺ 還原實際數值」即可回到今天的實際資料。';
+  const hard = (V.res!=null && V.res<2.5) || (V.srf!=null && V.srf>50);
+  const stage = score==null ? '尚無資料。' :
+    score>=75 ? '75 分以上 → 階段三：只留核心倉位，其餘換成現金或短期國債。' :
+    score>=50 ? '50–74 分 → 階段二：倉位減到約一半，並建立避險（對沖）。' :
+    score>=25 ? '25–49 分 → 階段一：停止加碼，設好移動停利，倉位約維持 75%。' :
+                '0–24 分 → 維持原本的配置，每週四看一次即可，不需要動作。';
+  document.getElementById('exitTipText').textContent =
+    mode + '\n\n' +
+    '怎麼算：13 個指標各自有「重要性權重」（例如準備金 20、SRF 14 最重要；ON RRP、TGA 只有 4）。每個指標綠燈得 0、黃燈得一半、紅燈得滿分，加總後換算成 0–100 分。' +
+    '所以「很多個不重要的指標亮紅燈」分數也不會太高，「一個很重要的指標亮紅燈」分數就會明顯拉高。' +
+    (missing.length ? '\n\n暫時沒有資料、先不計分的指標：'+missing.join('、')+'（其餘指標自動重新換算成 100 分制）。' : '') +
+    (hard ? '\n\n☠ 硬性觸發：準備金跌破 2.5T 或 SRF 超過 50B，分數直接鎖定在 80 分以上。' : '') +
+    '\n\n現在該做什麼：' + stage +
+    '\n\n下表是各指標目前「貢獻了幾分」，分數最高的排最上面，就是現在最需要注意的項目：';
+  const dot = {g:'🟢',y:'🟡',r:'🔴',m:'🟣'};
+  rows.forEach(r=> r.pts = den ? r.s*r.w/den*100 : 0);
+  rows.sort((a,b)=> b.pts-a.pts || b.w-a.w);
+  document.getElementById('exitTipTable').innerHTML = den ?
+    '<table><tr><td>燈號</td><td>指標</td><td>權重</td><td>貢獻分數</td></tr>' +
+    rows.map(r=>`<tr><td>${dot[r.st]}</td><td>${r.ind.name}</td><td class="mono">${r.w}</td><td class="mono">${r.pts.toFixed(1)}</td></tr>`).join('') +
+    '</table>' : '';
+}
+function overall(){
+  if(V.res!=null && V.res<2.5) return ['r','☠ 終極死亡訊號 — 準備金跌破 2.5 兆美元：系統性流動性斷裂風險，全面防禦模式'];
+  const gm = IND[5].judge(V.ndx);
+  if(gm==='m') return ['m','🔥 Gamma 軋空 · 融漲點火 — 向上失控段啟動：末段行情，嚴設移動停利、禁止追高加碼'];
+  const {score, worst} = exitScore();
+  if(score==null) return ['y','⚪ 資料未載入 — 請抓取或填入數值'];
+  const flag = worst.length ? '（觸發：'+worst.join('、')+'）' : '';
+  if(score>=75) return ['r','🔴 紅色警戒 — 加權撤出指數 '+score+'/100：啟動紅線 SOP'+flag];
+  if(score>=25) return ['y','🟡 黃色警戒 — 加權撤出指數 '+score+'/100：啟動黃線 SOP，提高監控頻率至每日'+flag];
+  return ['g','🟢 綠色 — 加權撤出指數 '+score+'/100：流動性環境正常，維持既定配置，每週四檢查 H.4.1'];
+}
+
+function render(){
+  // banner
+  const [cls,txt] = overall();
+  const b = document.getElementById('regimeBanner');
+  b.className = cls; document.getElementById('regimeText').textContent = txt + (scenarioMode!=='actual'?'（⚠ 測試情境中，非真實數據）':'');
+  document.getElementById('regimeTipTitle').textContent = SOP[cls].label;
+  document.getElementById('regimeTipText').textContent = SOP[cls].text;
+  // gauge
+  document.getElementById('gaugeVal').textContent = V.res==null?'—':V.res.toFixed(3);
+  const lo=2.2, hi=3.4, pct = V.res==null?0:Math.min(100,Math.max(0,(V.res-lo)/(hi-lo)*100));
+  document.getElementById('needle').style.left = 'calc('+pct.toFixed(1)+'% - 2px)';
+  // cards
+  [['grid',IND],['grid2',IND2]].forEach(([gid,LIST])=>{
+  const g = document.getElementById(gid); g.innerHTML='';
+  LIST.forEach(ind=>{
+    const s = stateOf(ind);
+    const card = document.createElement('div');
+    card.className = 'card '+s;
+    const assess = s==='n' ? '目前評估：尚未載入數值，請抓取或手動填入。' :
+                   '目前評估：此指標單獨為 '+ST[s]+'燈（見左側自身警戒線）。\n這只是 13 項指標之一，不代表要單獨依這一項採取行動 —— 實際是否啟動 SOP、動作到哪個階段，請以最上方總覽燈號與「加權撤出指數」為準。';
+    let pcExtra = ind.k==='ndx' ? `<div class="unit" style="margin-top:6px">Put/Call：<input style="width:70px;font-family:var(--mono);background:var(--panel2);border:1px solid var(--edge);border-radius:6px;color:var(--ink);padding:2px 6px" type="number" step="0.01" value="${V.pc??''}" onchange="setV('pc',this.value)"></div>` : '';
+    card.innerHTML = `
+      <div class="top"><div class="name">${ind.no}. ${ind.name}</div><div class="badge ${s}">${ST[s]}</div></div>
+      <div class="val"><input type="number" step="${ind.step}" value="${V[ind.k]??''}" onchange="setV('${ind.k}',this.value)"> <span class="unit">${ind.unit}</span></div>
+      ${pcExtra}
+      <div class="src">${ind.src}</div>
+      <div class="tip">
+        <div class="t1">${ind.name}｜這個指標在看什麼</div>
+        <div class="t2">${ind.mean}</div>
+        <div class="t3">警戒線：<b class="g">綠 ${ind.green}</b> ｜ <b class="y">黃 ${ind.yellow}</b> ｜ <b class="${ind.k==='ndx'?'m':'r'}">紅 ${ind.red}</b><br><b class="${s}">${assess}</b></div>
+      </div>`;
+    g.appendChild(card);
+  });
+  });
+  // matrix
+  const tb = document.querySelector('#matrix tbody'); tb.innerHTML='';
+  IND.concat(IND2).forEach(ind=>{
+    const s = stateOf(ind);
+    tb.insertAdjacentHTML('beforeend', `<tr>
+      <td class="mono">${ind.no}</td><td><b>${ind.name}</b></td><td>${ind.src}</td>
+      <td class="cg">${ind.green}</td><td class="cy">${ind.yellow}</td><td class="cr">${ind.red}</td>
+      <td class="mono">${fmt(ind.k,V[ind.k])} ${V[ind.k]!=null?ind.unit:''}</td>
+      <td class="b c${s==='m'?'m':s}" title="${s==='n'?'尚未載入數值':'此指標單獨為'+ST[s]+'燈（見左側自身警戒線），只是 13 項之一。實際是否啟動 SOP，請以最上方總覽燈號與加權撤出指數為準。'}" style="cursor:help">${{g:'🟢 綠',y:'🟡 黃',r:'🔴 紅',m:'🟣 融漲',n:'⚪ 待填'}[s]}</td></tr>`);
+  });
+  renderExit();
+  renderLog();
+}
+
+function setV(k,val){ V[k] = val===''?null:parseFloat(val); scenarioMode='manual'; render(); }
+
+/* ================= 測試情境 ================= */
+function applyScenario(mode){
+  scenarioMode = mode;
+  if(mode==='death'){        // 終極死亡訊號：準備金 < 2.5T + 資金管路全面尖叫
+    V = {res:2.450, tga:1080, rrp:0, sofr:38, hy:545, ndx:-4.2, pc:1.35, etf:-18,
+         srf:85, s99:45, nlq:5.05, nlqd:-520, move:152, vixr:1.12, rsp:0.244, rsp_sig:'r'};
+  } else if(mode==='melt'){  // Gamma 軋空融漲點火：向上失控
+    V = {res:2.960, tga:905, rrp:3, sofr:-2, hy:268, ndx:9.4, pc:0.48, etf:31,
+         srf:1, s99:2, nlq:5.78, nlqd:-45, move:92, vixr:0.83, rsp:0.251, rsp_sig:'y'};
+  } else {
+    scenarioMode='actual';
+    if(LIVE){ V = {...LIVE}; }
+    else { V = {...ACTUAL}; render(); fetchLive(); return; }   // 尚未抓到資料 → 重新抓取
+  }
+  render();
+}
+
+/* ================= 自動抓取 ================= */
+async function fetchLive(){
+  const note = document.getElementById('fetchNote');
+  note.textContent = '抓取中…';
+  let msgs = [];
+  // 1) data.json（首次載入時後端可能還在抓取，最多重試 8 次 × 4 秒）
+  let r = null;
+  for(let i=0;i<8;i++){
+    try{ r = await fetch('data.json?ts='+Date.now()); }catch(e){ r = null; }
+    if(r && r.ok) break;
+    note.textContent = '後端抓取數據中…（'+(i+1)+'/8）';
+    await new Promise(res=>setTimeout(res,4000));
+  }
+  try{
+    if(r && r.ok){
+      const d = await r.json();
+      if(d.res!=null) V.res = d.res;
+      if(d.tga!=null) V.tga = d.tga;
+      if(d.rrp!=null) V.rrp = d.rrp;
+      if(d.sofr_iorb!=null) V.sofr = d.sofr_iorb;
+      if(d.hy!=null) V.hy = d.hy;
+      if(d.ndx!=null) V.ndx = d.ndx;   // NDX 50日乖離（Stooq 自動計算）
+      if(d.pc!=null)  V.pc  = d.pc;    // 股權 P/C（CBOE 半自動，失敗時保留手動值）
+      if(d.etf!=null) V.etf = d.etf;   // QQQ 流通股數週變化代理（Yahoo 自動，首週累積中為 null）
+      ['srf','s99','nlq','nlqd','move','vixr','rsp','rsp_sig'].forEach(k=>{ if(d[k]!=null) V[k]=d[k]; });
+      document.getElementById('asof').textContent = d.date || new Date().toISOString().slice(0,10);
+      msgs.push('data.json ✓（'+(d.date||'')+(d.pc_src?'，P/C 來源：'+d.pc_src:'，P/C 未取得→手動')+'）');
+    }
+  }catch(e){ msgs.push('data.json 未找到（請先執行 fetch_liquidity.py）'); }
+  // 2) TGA 即時：財政部 FiscalData API（支援瀏覽器直連 CORS）
+  try{
+    const url = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/dts/operating_cash_balance'
+      + '?filter=account_type:in:(Treasury General Account (TGA) Closing Balance,Federal Reserve Account)'
+      + '&sort=-record_date&page[size]=4&fields=record_date,account_type,open_today_bal';
+    const r = await fetch(url);
+    if(r.ok){
+      const j = await r.json();
+      const row = (j.data||[]).find(x=>/TGA|Federal Reserve/.test(x.account_type));
+      if(row && row.open_today_bal){
+        V.tga = Math.round(parseFloat(row.open_today_bal)/1000);   // 百萬 → 十億
+        msgs.push('TGA 即時 ✓（'+row.record_date+'：$'+V.tga+'B）');
+      }
+    }
+  }catch(e){ msgs.push('TGA 即時抓取失敗：'+e.message); }
+  scenarioMode='actual';
+  LIVE = {...V};
+  note.textContent = msgs.join('　｜　');
+  render();
+}
+
+/* ================= 每日快照 ================= */
+const store = (()=>{                    // localStorage 可用則持久化（本機開啟），否則退回記憶體
+  let mem = null;
+  try{ localStorage.setItem('_t','1'); localStorage.removeItem('_t');
+       return { get:()=>JSON.parse(localStorage.getItem('liqlog')||'[]'),
+                set:v=>localStorage.setItem('liqlog',JSON.stringify(v)) };
+  }catch(e){ mem=[]; return { get:()=>mem, set:v=>mem=v }; }
+})();
+
+function stateLabel(cls, score){
+  const name = {g:'🟢 綠色',y:'🟡 黃色',r:'🔴 紅色',m:'🟣 融漲'}[cls] || (cls||'—');
+  return score==null ? name : name+'（撤出指數 '+score+'/100）';
+}
+function snapshot(){
+  const today = new Date().toISOString().slice(0,10);
+  const log = store.get().filter(x=>x.date!==today);
+  const {score} = exitScore();
+  log.push({date:today, res:V.res, tga:V.tga, rrp:V.rrp, sofr:V.sofr, hy:V.hy, ndx:V.ndx, pc:V.pc, etf:V.etf, exit:score, state:overall()[0]});
+  log.sort((a,b)=>b.date.localeCompare(a.date));
+  store.set(log); renderLog();
+}
+function renderLog(){
+  const log = store.get();
+  const tb = document.querySelector('#log tbody'); tb.innerHTML='';
+  document.getElementById('logEmpty').style.display = log.length?'none':'block';
+  log.forEach(x=>{
+    const isCls = x.state==='g'||x.state==='y'||x.state==='r'||x.state==='m';
+    const label = isCls ? stateLabel(x.state, x.exit) : (x.state||'—');   // 舊格式（截斷文字）原樣顯示，新記錄一律用乾淨格式
+    tb.insertAdjacentHTML('beforeend',
+     `<tr><td class="mono">${x.date}</td><td class="mono">${x.res??'—'}</td><td class="mono">${x.tga??'—'}</td><td class="mono">${x.rrp??'—'}</td><td class="mono">${x.sofr??'—'}</td><td class="mono">${x.hy??'—'}</td><td class="mono">${x.ndx??'—'}</td><td class="mono">${x.pc??'—'}</td><td class="mono">${x.etf??'—'}</td><td class="mono">${x.exit??'—'}</td><td>${label}</td></tr>`);
+  });
+}
+function exportLog(){
+  const blob = new Blob([JSON.stringify(store.get(),null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'liquidity_log_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+}
+
+render();
+fetchLive();   // 開頁自動抓取 data.json 與 TGA 即時值，免手動按按鈕
+
+/* ================= 準備金十年歷史圖表 ================= */
+async function loadHistory(){
+  const note = document.getElementById('histNote');
+  let r = null;
+  for(let i=0;i<10;i++){
+    try{ r = await fetch('history.json?ts='+Date.now()); }catch(e){ r = null; }
+    if(r && r.ok) break;
+    note.textContent = '歷史數據抓取中…（'+(i+1)+'/10）';
+    await new Promise(res=>setTimeout(res,4000));
+  }
+  if(!(r && r.ok)){ note.textContent = '歷史數據載入失敗：後端尚未取得 FRED 回應，稍後重新整理頁面再試。'; return; }
+  if(typeof Chart === 'undefined'){ note.textContent = 'Chart.js CDN 載入失敗（網路被擋？），圖表無法顯示。'; return; }
+  const h = await r.json();
+  const N = h.dates.length;
+  window.resChart = new Chart(document.getElementById('histChart'), {
+    type:'line',
+    data:{ labels:h.dates, datasets:[
+      {label:'準備金（兆美元）', data:h.values, borderColor:'#5AC8E8',
+       backgroundColor:'rgba(90,200,232,.07)', fill:true, pointRadius:0,
+       pointHitRadius:8, borderWidth:1.8, tension:.15, yAxisID:'y'},
+      {label:'淨流動性（兆美元）', data:h.netliq||[], borderColor:'#FF8FB1',
+       pointRadius:0, pointHitRadius:8, borderWidth:1.3, tension:.15, yAxisID:'y', hidden:!h.netliq},
+      {label:'S&P 500（起點=100）', data:h.sp500||[], borderColor:'#B58CFF',
+       pointRadius:0, pointHitRadius:8, borderWidth:1.2, tension:.15, yAxisID:'y1', hidden:!h.sp500},
+      {label:'NASDAQ（起點=100）', data:h.nasdaq||[], borderColor:'#3DDC97',
+       pointRadius:0, pointHitRadius:8, borderWidth:1.2, tension:.15, yAxisID:'y1', hidden:!h.nasdaq},
+      {label:'紅色警戒 2.5T', data:Array(N).fill(2.5), borderColor:'#FF5A5A',
+       borderDash:[6,4], pointRadius:0, borderWidth:1.2, fill:false, yAxisID:'y'},
+      {label:'黃色警戒 3.0T', data:Array(N).fill(3.0), borderColor:'#FFB320',
+       borderDash:[6,4], pointRadius:0, borderWidth:1.2, fill:false, yAxisID:'y'} ]},
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{mode:'index', intersect:false},
+      scales:{ x:{ticks:{color:'#8FA0B5', maxTicksLimit:12, maxRotation:0}, grid:{color:'rgba(34,49,70,.55)'}},
+               y:{position:'left', ticks:{color:'#5AC8E8'}, grid:{color:'rgba(34,49,70,.55)'},
+                  title:{display:true, text:'準備金 / 淨流動性（兆美元）', color:'#5AC8E8'}},
+               y1:{position:'right', ticks:{color:'#8FA0B5'}, grid:{drawOnChartArea:false},
+                  title:{display:true, text:'股指（十年前=100）', color:'#8FA0B5'}} },
+      plugins:{ legend:{labels:{color:'#8FA0B5', boxWidth:18}},
+        tooltip:{callbacks:{label:(c)=>{
+          if(c.dataset.yAxisID==='y') return c.dataset.label+': '+c.parsed.y+' T';
+          const raw = c.dataset.label.indexOf('S&P')===0 ? (h.sp_raw||[])[c.dataIndex] : (h.nq_raw||[])[c.dataIndex];
+          return c.dataset.label+': '+c.parsed.y+(raw?('（'+raw+' 點）'):'');
+        }}},
+        zoom:{ zoom:{wheel:{enabled:true}, pinch:{enabled:true}, mode:'x'},
+               pan:{enabled:true, mode:'x'},
+               limits:{x:{minRange:8}} } }
+    }});
+  note.textContent = '滾輪縮放 ｜ 拖曳平移 ｜ 雙擊還原 ｜ 點圖例可隱藏線條（股指以十年前=100 指數化，游標懸停顯示原始點位；準備金每週四隨 H.4.1 更新）';
+}
+function resetZoom(){ if(window.resChart) window.resChart.resetZoom(); }
+loadHistory();
+</script>
+</body>
+</html>
