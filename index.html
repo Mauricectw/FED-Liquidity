@@ -478,10 +478,15 @@ const store = (()=>{                    // localStorage 可用則持久化（本
   }catch(e){ mem=[]; return { get:()=>mem, set:v=>mem=v }; }
 })();
 
+function stateLabel(cls, score){
+  const name = {g:'🟢 綠色',y:'🟡 黃色',r:'🔴 紅色',m:'🟣 融漲'}[cls] || (cls||'—');
+  return score==null ? name : name+'（撤出指數 '+score+'/100）';
+}
 function snapshot(){
   const today = new Date().toISOString().slice(0,10);
   const log = store.get().filter(x=>x.date!==today);
-  log.push({date:today, res:V.res, tga:V.tga, rrp:V.rrp, sofr:V.sofr, hy:V.hy, ndx:V.ndx, pc:V.pc, etf:V.etf, exit:exitScore().score, state:overall()[1].slice(0,20)});
+  const {score} = exitScore();
+  log.push({date:today, res:V.res, tga:V.tga, rrp:V.rrp, sofr:V.sofr, hy:V.hy, ndx:V.ndx, pc:V.pc, etf:V.etf, exit:score, state:overall()[0]});
   log.sort((a,b)=>b.date.localeCompare(a.date));
   store.set(log); renderLog();
 }
@@ -489,8 +494,12 @@ function renderLog(){
   const log = store.get();
   const tb = document.querySelector('#log tbody'); tb.innerHTML='';
   document.getElementById('logEmpty').style.display = log.length?'none':'block';
-  log.forEach(x=> tb.insertAdjacentHTML('beforeend',
-   `<tr><td class="mono">${x.date}</td><td class="mono">${x.res??'—'}</td><td class="mono">${x.tga??'—'}</td><td class="mono">${x.rrp??'—'}</td><td class="mono">${x.sofr??'—'}</td><td class="mono">${x.hy??'—'}</td><td class="mono">${x.ndx??'—'}</td><td class="mono">${x.pc??'—'}</td><td class="mono">${x.etf??'—'}</td><td class="mono">${x.exit??'—'}</td><td>${x.state||''}</td></tr>`));
+  log.forEach(x=>{
+    const isCls = x.state==='g'||x.state==='y'||x.state==='r'||x.state==='m';
+    const label = isCls ? stateLabel(x.state, x.exit) : (x.state||'—');   // 舊格式（截斷文字）原樣顯示，新記錄一律用乾淨格式
+    tb.insertAdjacentHTML('beforeend',
+     `<tr><td class="mono">${x.date}</td><td class="mono">${x.res??'—'}</td><td class="mono">${x.tga??'—'}</td><td class="mono">${x.rrp??'—'}</td><td class="mono">${x.sofr??'—'}</td><td class="mono">${x.hy??'—'}</td><td class="mono">${x.ndx??'—'}</td><td class="mono">${x.pc??'—'}</td><td class="mono">${x.etf??'—'}</td><td class="mono">${x.exit??'—'}</td><td>${label}</td></tr>`);
+  });
 }
 function exportLog(){
   const blob = new Blob([JSON.stringify(store.get(),null,2)],{type:'application/json'});
