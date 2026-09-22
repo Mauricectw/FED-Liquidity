@@ -1,0 +1,35 @@
+name: Update liquidity data
+
+on:
+  schedule:
+    # 週一到週五 台灣時間 18:10（UTC 10:10）
+    - cron: "10 10 * * 1-5"
+  workflow_dispatch: {}   # 允許在 GitHub 網頁手動點擊「Run workflow」測試
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch latest data
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: python fetch_liquidity.py
+
+      - name: Commit updated data files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json history.json qqq_so_history.json
+          git diff --staged --quiet || git commit -m "auto: update liquidity data $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
