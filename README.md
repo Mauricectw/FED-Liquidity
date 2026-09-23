@@ -1,6 +1,6 @@
 # Liquidity Dashboard
 
-- `index.html` — 純靜態儀表盤（原本內嵌在 Python 裡的那段 HTML/CSS/JS），只會 `fetch` 同目錄的 `data.json`、`history.json`
+- `index.html` — 純靜態dashboard（原本內嵌在 Python 裡的那段 HTML/CSS/JS），只會 `fetch` 同目錄的 `data.json`、`history.json`
 - `fetch_liquidity.py` — 抓資料的部分，寫出 `data.json` / `history.json` / `qqq_so_history.json`。
 - `.github/workflows/update.yml` — GitHub Actions，排程執行 `fetch_liquidity.py` 並把更新後的 json 檔 commit 回 repo。
 
