@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>市場五儀表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EDF0F1; --panel:#FFFFFF; --ink:#16222A; --muted:#5B6B74; --line:#D5DDE1;
+  --accent:#2F5D7C; --inset:#F5F7F8;
+  --g:#23875A; --y:#C98C0E; --r:#C23B2B; --off:#CBD3D8;
+  --g-bg:#E3F3EA; --y-bg:#FBF1DA; --r-bg:#F8E3E0; --spark-fill:rgba(47,93,124,.12);
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0F161B; --panel:#172129; --ink:#E4EBEF; --muted:#93A4AE; --line:#2A3740;
+    --accent:#7FB0D2; --inset:#121B21;
+    --g:#3FBF83; --y:#E8B03A; --r:#EF6A57; --off:#33424C;
+    --g-bg:#16322A; --y-bg:#352B14; --r-bg:#3A1F1C; --spark-fill:rgba(127,176,210,.14);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0F161B; --panel:#172129; --ink:#E4EBEF; --muted:#93A4AE; --line:#2A3740;
+  --accent:#7FB0D2; --inset:#121B21;
+  --g:#3FBF83; --y:#E8B03A; --r:#EF6A57; --off:#33424C;
+  --g-bg:#16322A; --y-bg:#352B14; --r-bg:#3A1F1C; --spark-fill:rgba(127,176,210,.14);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;padding:28px 16px 48px;}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:22px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.3}
+p{margin:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted);font-weight:500}
+header{display:grid;gap:8px}
+header h1{font-size:30px;font-weight:900;letter-spacing:.02em}
+header .sub{color:var(--muted);max-width:62ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{font-size:12.5px;padding:3px 10px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+
+/* summary console */
+.console{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:26px}
+@media (max-width:760px){.console{grid-template-columns:1fr}}
+.lamps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;background:var(--inset);border:1px solid var(--line);border-radius:12px;padding:16px 8px}
+.lamp{display:grid;justify-items:center;gap:6px;text-align:center}
+.bulb{width:38px;height:38px;border-radius:50%;background:var(--off);border:3px solid var(--panel);box-shadow:0 0 0 1px var(--line)}
+.bulb.g{background:var(--g);box-shadow:0 0 0 1px var(--line),0 0 16px -2px var(--g)}
+.bulb.y{background:var(--y);box-shadow:0 0 0 1px var(--line),0 0 16px -2px var(--y)}
+.bulb.r{background:var(--r);box-shadow:0 0 0 1px var(--line),0 0 16px -2px var(--r)}
+.lamp b{font-size:13px}
+.lamp span{font-size:11.5px;color:var(--muted)}
+.verdict{display:grid;gap:10px;align-content:start}
+.verdict h2{font-size:22px;font-weight:900}
+.meter{display:grid;gap:6px}
+.bar{height:10px;border-radius:6px;background:linear-gradient(90deg,var(--r),var(--y) 50%,var(--g));position:relative}
+.bar i{position:absolute;top:-5px;width:4px;height:20px;border-radius:2px;background:var(--ink);transform:translateX(-50%);transition:left .4s}
+.bar-lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.groups{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grp{background:var(--inset);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.grp b{display:block;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.06em}
+
+/* gauges */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px;align-content:start;border-top:5px solid var(--off)}
+.card.g{border-top-color:var(--g)} .card.y{border-top-color:var(--y)} .card.r{border-top-color:var(--r)}
+.card-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.card-hd h3{font-size:18px;font-weight:700}
+.card-hd .role{font-size:12.5px;color:var(--muted)}
+.pill{font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.pill.g{background:var(--g-bg);color:var(--g)} .pill.y{background:var(--y-bg);color:var(--y)} .pill.r{background:var(--r-bg);color:var(--r)}
+.fig{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fig .v{font-size:30px;font-weight:700}
+.fig .d{font-size:13.5px}
+.up{color:var(--r)} .dn{color:var(--g)}
+.read{font-size:14px}
+.rule{font-size:12.5px;color:var(--muted);background:var(--inset);border-radius:8px;padding:8px 10px}
+
+/* advice */
+.two{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:12px;align-content:start}
+.box h2{font-size:18px}
+.box ul{margin:0;padding-left:1.2em;display:grid;gap:8px}
+.watch td,.watch th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13.5px;vertical-align:top}
+.watch th{font-size:12px;color:var(--muted);font-weight:500}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+.foot{font-size:12.5px;color:var(--muted);display:grid;gap:6px}
+.foot a{color:var(--accent)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;font-size:13px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+.spark{display:block;width:100%;height:44px}
+.src{font-size:11.5px;color:var(--muted)}
+.sel{display:grid;gap:3px;font-size:11.5px;color:var(--muted)}
+.sel select{font:inherit;font-size:14px;padding:6px 8px;border-radius:7px;border:1px solid var(--line);background:var(--inset);color:var(--ink);width:100%}
+.sel select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.chip.warn{color:var(--r);border-color:var(--r)}
+body{margin:0}
+@media (max-width:400px){.cards{grid-template-columns:1fr}}
+.cards{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">OIL 看成本 · DXY 看資金 · VIX 看情緒 · GOLD 看避險 · YIELD 看利率</span>
+    <h1>市場五儀表</h1>
+    <p class="sub">單一指標很少決定行情。五個儀表開始朝同一個方向走時，趨勢通常比較明確。這頁把五個指標各自亮燈，再看它們是否同步。</p>
+    <div class="chips">
+      <span class="chip" id="asof">載入最新報價中…</span>
+      <span class="chip" id="spx"></span>
+      <span class="chip warn" id="stale" hidden></span>
+    </div>
+  </header>
+
+  <section class="console" aria-label="總覽">
+    <div style="display:grid;gap:12px;align-content:start">
+      <span class="eyebrow">五燈總覽　綠＝有利風險資產　黃＝中性／需觀察　紅＝壓力</span>
+      <div class="lamps" id="lamps"></div>
+      <div class="meter">
+        <div class="bar"><i id="needle" style="left:50%"></i></div>
+        <div class="bar-lbl"><span>壓力同步</span><span>訊號分歧</span><span>順風同步</span></div>
+      </div>
+    </div>
+    <div class="verdict">
+      <span class="eyebrow">同步判讀</span>
+      <h2 id="v-title">—</h2>
+      <p id="v-body"></p>
+      <div class="groups">
+        <div class="grp"><b>情緒面　VIX＋黃金</b><span id="g-mood"></span></div>
+        <div class="grp"><b>資金與成本　DXY＋殖利率＋油</b><span id="g-macro"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cards" id="cards" aria-label="五個指標"></section>
+
+  <section class="two">
+    <div class="box">
+      <h2>現在該怎麼看</h2>
+      <ul id="advice"></ul>
+    </div>
+    <div class="box">
+      <h2>接下來盯的轉折點</h2>
+      <div class="tbl"><table class="watch">
+        <thead><tr><th>指標</th><th>觸發條件</th><th>代表意義</th></tr></thead>
+        <tbody>
+          <tr><td>VIX</td><td class="num">升破 18，再破 25</td><td>情緒開始緊張，燈號轉黃、轉紅；&gt;35 為極端恐慌，常是情緒轉折區</td></tr>
+          <tr><td>10Y</td><td>一個月升幅超過 30bp，或水位 &gt;5.25%</td><td>資金成本壓力，股市容易承壓</td></tr>
+          <tr><td>DXY</td><td>一個月漲幅超過 1%</td><td>資金回流美元，新興市場與商品承壓</td></tr>
+          <tr><td>原油</td><td>出現關鍵長黑，或一個月漲跌超過 15%</td><td>長黑＝供給衝擊退潮；急漲＝成本壓力；崩跌＝需求疑慮</td></tr>
+          <tr><td>黃金</td><td>股市跌＋黃金漲</td><td>資金轉進避險，確認風險偏好反轉</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p><b>更新方式：</b>GitHub Actions 在美股交易日每小時抓一次報價（另在收盤後與亞洲早盤各一次），寫入 data.json；這頁每次開啟都讀取最新一份，開著時每 10 分鐘自動重讀。報價來自 Yahoo Finance（VIX、原油、10Y 抓不到時改用 FRED），期貨與盤中價可能有延遲。</p>
+    <p><b>門檻說明：</b>以近一個月變化為主、絕對水位為輔。VIX 看水位（&lt;18 綠、18–25 黃、&gt;25 紅）；DXY 看月變化（&lt;−1% 綠、±1% 黃、&gt;+1% 紅）；原油依上漲原因判讀，需求推升在 +15% 內為綠，供給推升超過 +5% 為黃、超過 +15% 為紅，月跌超過 15% 視為需求疑慮亦為紅；黃金月漲 &lt;2% 綠、2–5% 黃、&gt;5% 紅（避險升溫）；10Y 月升幅 &lt;10bp 綠、10–30bp 黃、&gt;30bp 或水位 &gt;5.25% 紅。門檻是自訂的經驗值，不是公認標準。</p>
+    <p>本頁僅為市場觀察框架的整理，不構成任何投資建議。</p>
+  </footer>
+</div>
+
+<script>
+const CAUSE_KEY = "five-gauges-oil-cause";
+let oilCause = "supply";
+try { oilCause = localStorage.getItem(CAUSE_KEY) || "supply"; } catch(e) {}
+let DATA = null;
+
+const LBL = {g:"綠燈", y:"黃燈", r:"紅燈"};
+const fmt = (n,d=2)=> Number(n).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sgn = n => n>0?"+":"";
+const has = n => n!==null && n!==undefined && isFinite(n);
+
+const DEF = [
+  { id:"vix", name:"VIX 恐慌指數", role:"情緒的壓力計", dec:2, chgUnit:"%",
+    judge(s){
+      const c = s.val>25?"r": s.val>=18?"y":"g";
+      let t;
+      if (s.val>35) t="極端恐慌。專業資金會把這種時刻視為情緒接近轉折的區域，而不是追空的理由。";
+      else if (c==="r") t="市場在搶買保險，股市容易劇烈波動，先降低部位再說。";
+      else if (c==="y") t="情緒開始緊張，保險變貴，留意是否繼續升溫。";
+      else t="情緒平穩，資金願意承擔風險。若同時看到利率快速上升，代表市場可能低估了壓力。";
+      return {c,t};
+    },
+    rule:"水位 <18 綠、18–25 黃、>25 紅；>35 為極端恐慌"},
+  { id:"dxy", name:"美元指數 DXY", role:"全球資金的水龍頭", dec:2, chgUnit:"%",
+    judge(s){
+      const m = s.chg_1m ?? 0;
+      const c = m>1?"r": m<-1?"g":"y";
+      const t = c==="r"?"美元走強，資金回流美國。全球流動性收縮，新興市場與原物料承壓。"
+              : c==="g"?"美元轉弱，資金願意離開美元去找機會，股市、新興市場與商品較容易有行情。"
+              : "美元大致持平，資金方向還沒有表態。";
+      return {c,t};
+    },
+    rule:"月變化 <−1% 綠、−1%～+1% 黃、>+1% 紅"},
+  { id:"oil", name:"原油 WTI", role:"經濟與成本的交叉指標", unit:"$", dec:2, chgUnit:"%", cause:true,
+    judge(s){
+      const m = s.chg_1m ?? 0;
+      let c;
+      if (m<-15) c="r";
+      else if (oilCause==="demand") c = m>15?"y":"g";
+      else c = m>15?"r": m>5?"y":"g";
+      let t;
+      if (m<-15) t="油價崩跌，市場會開始懷疑全球需求正在消失，伴隨衰退疑慮。";
+      else if (oilCause==="supply" && m>5) t="供給面推升的上漲屬於成本壓力：推高通膨、逼央行收緊。在出現關鍵長黑之前，不急著判斷反轉。";
+      else if (oilCause==="demand" && m>0) t="需求推升的上漲代表經濟擴張，股市通常能同步走強。";
+      else t="油價波動溫和，成本面沒有額外壓力。";
+      return {c,t};
+    },
+    rule:"需求推升：月漲 ≤15% 綠。供給推升：>+5% 黃、>+15% 紅。月跌 >15% 紅（需求疑慮）"},
+  { id:"gold", name:"黃金", role:"避險需求的溫度", unit:"$", dec:0, chgUnit:"%",
+    judge(s){
+      const m = s.chg_1m ?? 0;
+      const c = m>5?"r": m>=2?"y":"g";
+      const t = c==="r"?"資金明顯流向避險。若同時看到股市下跌，幾乎可以確定風險偏好在反轉。"
+              : c==="y"?"避險需求升溫中。若股市也在漲，可能是市場在布局通膨或對貨幣價值有疑慮。"
+              : "黃金沒有明顯上漲，市場沒有避險潮。";
+      return {c,t};
+    },
+    rule:"月變化 <+2% 綠、+2～5% 黃、>+5% 紅（避險升溫）"},
+  { id:"y10", name:"美國 10 年期殖利率", role:"利率與資金成本", suffix:"%", dec:2, chgUnit:"bp",
+    judge(s){
+      const m = s.chg_1m ?? 0;
+      const c = (m>30 || s.val>5.25)?"r": m>=10?"y":"g";
+      const t = c==="r"?"殖利率上升太快或水位過高，企業融資成本提高，資金可能從股市回流債市。"
+              : c==="y"?"殖利率溫和上升，可能是經濟轉強，也可能是通膨疑慮，需要搭配油價判斷。"
+              : "殖利率持平或下降，資金成本降低，對股市偏利多。";
+      return {c,t};
+    },
+    rule:"月升幅 <10bp 綠、10–30bp 黃、>30bp 或水位 >5.25% 紅"}
+];
+
+function spark(vals){
+  if (!vals || vals.length<2) return "";
+  const W=260,H=44,p=3, lo=Math.min(...vals), hi=Math.max(...vals), rg=(hi-lo)||1;
+  const pts = vals.map((v,i)=>[p+i*(W-2*p)/(vals.length-1), H-p-(v-lo)/rg*(H-2*p)]);
+  const line = pts.map((q,i)=>(i?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join("");
+  const last = pts[pts.length-1];
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="近三個月走勢">
+    <path d="${line} L${last[0].toFixed(1)} ${H} L${p} ${H}Z" fill="var(--spark-fill)"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="var(--accent)"/></svg>`;
+}
+
+const cardsEl = document.getElementById("cards");
+cardsEl.innerHTML = DEF.map(d=>`
+  <article class="card" id="card-${d.id}">
+    <div class="card-hd">
+      <div><h3>${d.name}</h3><div class="role">${d.role}</div></div>
+      <span class="pill" id="pill-${d.id}">—</span>
+    </div>
+    <div class="fig"><span class="v num" id="v-${d.id}">—</span><span class="d num" id="d-${d.id}"></span></div>
+    <div id="s-${d.id}"></div>
+    <p class="read" id="t-${d.id}"></p>
+    <p class="rule">${d.rule}</p>
+    <p class="src" id="src-${d.id}"></p>
+    ${d.cause?`<label class="sel" for="oil-cause">這波漲跌的主因（需自行判斷）<select id="oil-cause"><option value="supply">供給衝擊（地緣政治、減產）</option><option value="demand">需求增加（經濟擴張）</option></select></label>`:""}
+  </article>`).join("") + `
+  <article class="card" id="card-spx" style="border-top-color:var(--accent)">
+    <div class="card-hd"><div><h3>S&amp;P 500</h3><div class="role">對照組：股市本身怎麼走</div></div></div>
+    <div class="fig"><span class="v num" id="v-spx">—</span><span class="d num" id="d-spx"></span></div>
+    <div id="s-spx"></div>
+    <p class="read">不亮燈，用來對照：股市跌、黃金漲代表資金轉向避險；股市與黃金同漲，可能是在布局通膨。</p>
+    <p class="src" id="src-spx"></p>
+  </article>`;
+const causeSel = document.getElementById("oil-cause");
+causeSel.value = oilCause;
+causeSel.addEventListener("change",()=>{ oilCause = causeSel.value; try{localStorage.setItem(CAUSE_KEY,oilCause);}catch(e){} render(); });
+
+function chgText(v, unit){
+  if (!has(v)) return "—";
+  return sgn(v) + (unit==="bp"? Math.round(v) : fmt(v,1)) + unit;
+}
+
+function render(){
+  if (!DATA) return;
+  const S = DATA.series, res = {};
+  DEF.forEach(d=>{
+    const s = S[d.id]; if (!s) return;
+    const r = d.judge(s); res[d.id]=r;
+    document.getElementById(`card-${d.id}`).className = "card "+r.c;
+    const pill = document.getElementById(`pill-${d.id}`);
+    pill.className = "pill "+r.c; pill.textContent = LBL[r.c];
+    document.getElementById(`v-${d.id}`).textContent = (d.unit||"")+fmt(s.val,d.dec)+(d.suffix||"");
+    const dEl = document.getElementById(`d-${d.id}`);
+    dEl.innerHTML = `近一月 <span class="${s.chg_1m>0?"up":s.chg_1m<0?"dn":""}">${chgText(s.chg_1m,d.chgUnit)}</span>　近一週 <span class="${s.chg_1w>0?"up":s.chg_1w<0?"dn":""}">${chgText(s.chg_1w,d.chgUnit)}</span>`;
+    document.getElementById(`s-${d.id}`).innerHTML = spark(s.spark);
+    document.getElementById(`t-${d.id}`).textContent = r.t;
+    document.getElementById(`src-${d.id}`).textContent = `${s.date}　${s.source||""}${s.stale?"（本次抓取失敗，沿用上次數值）":""}`;
+  });
+
+  document.getElementById("lamps").innerHTML = DEF.map(d=>{
+    const c = res[d.id]?.c || "";
+    return `<div class="lamp"><div class="bulb ${c}" role="img" aria-label="${d.name} ${LBL[c]||"無資料"}"></div>
+    <b>${d.id==="y10"?"10Y":d.id==="oil"?"OIL":d.id.toUpperCase()}</b><span>${LBL[c]||"—"}</span></div>`;}).join("");
+
+  const score = c => c==="g"?1:c==="r"?-1:0;
+  const sc = id => score(res[id]?.c);
+  const scores = DEF.map(d=>sc(d.id));
+  const total = scores.reduce((a,b)=>a+b,0);
+  const nG = scores.filter(x=>x===1).length, nR = scores.filter(x=>x===-1).length;
+  document.getElementById("needle").style.left = (50 + total*10) + "%";
+
+  const mood = sc("vix")+sc("gold"), macro = sc("dxy")+sc("y10")+sc("oil");
+  document.getElementById("g-mood").textContent = mood>0?"平靜，沒有避險潮": mood<0?"恐慌升溫，資金往避險走":"情緒分歧";
+  document.getElementById("g-macro").textContent = macro<0?"收緊中：美元、利率或油價構成壓力": macro>0?"放鬆中：資金成本下降":"中性";
+
+  let title, body, adv;
+  if (nR>=4 || total<=-3){
+    title="壓力同步：風險偏好正在收縮";
+    body=`${nR} 盞紅燈同向。依這套邏輯，這種時候行情往往走得很乾脆，下跌趨勢較明確。`;
+    adv=["降低整體曝險，先求活下來，再談報酬。","避免逆勢摸底；等 VIX 出現極端值後回落，再考慮分批。","留意黃金與短債等防禦資產是否持續獲得資金。"];
+  } else if (nG>=4 || total>=3){
+    title="順風同步：環境有利風險資產";
+    body=`${nG} 盞綠燈同向。資金、情緒與成本都在幫忙，趨勢較容易延續。`;
+    adv=["可以順勢持有，但用停損或部位上限控制回撤。","VIX 低檔時保險便宜，可考慮順手買些保護。","持續追蹤殖利率與美元，它們通常是第一個轉向的。"];
+  } else if (mood>0 && macro<0){
+    title="訊號分歧：情緒平靜，但資金與利率在收緊";
+    body="VIX 低、黃金沒有上漲，市場並不害怕；但美元、殖利率或油價正在形成壓力。五個儀表沒有同步，這不是做方向的好時機。";
+    adv=[
+      "耐心等市場自己說話。在原油出現關鍵長黑、或殖利率明顯回落之前，不急著押方向。",
+      "低 VIX 加上利率壓力是容易被忽略的組合，追高的風險報酬不佳。",
+      "對利率敏感的部位（高估值成長股、高負債企業、長天期債券）先控制比重。",
+      "美元走強時，新興市場與商品部位不宜加碼。",
+      "真正要準備的是情緒追上利率的那一刻：若 VIX 升破 18、再破 25，五盞燈可能轉為同步偏空。",
+      "能長時間活在市場裡，比抓到每一次行情更重要。部位大小以睡得著為準。"
+    ];
+  } else {
+    title="訊號分歧：方向還沒有收斂";
+    body=`目前 ${nG} 綠、${5-nG-nR} 黃、${nR} 紅。儀表各自表述，行情通常較難走出乾脆的趨勢。`;
+    adv=["部位維持中性，不急著做方向。","觀察哪一組指標先轉向，並等第二、第三個指標確認。","用右側的轉折點清單判斷何時由分歧轉為同步。"];
+  }
+  document.getElementById("v-title").textContent = title;
+  document.getElementById("v-body").textContent = body;
+  document.getElementById("advice").innerHTML = adv.map(a=>`<li>${a}</li>`).join("");
+
+  const up = new Date(DATA.updated);
+  const tw = up.toLocaleString("zh-TW",{timeZone:"Asia/Taipei",hour12:false,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  const ageH = (Date.now()-up.getTime())/36e5;
+  document.getElementById("asof").textContent = `報價更新於 ${tw}（台北時間）`;
+  const spx = S.spx;
+  if (spx){
+    document.getElementById("v-spx").textContent = fmt(spx.val,0);
+    document.getElementById("d-spx").innerHTML = `近一月 <span>${chgText(spx.chg_1m,"%")}</span>　近一週 <span>${chgText(spx.chg_1w,"%")}</span>`;
+    document.getElementById("s-spx").innerHTML = spark(spx.spark);
+    document.getElementById("src-spx").textContent = `${spx.date}　${spx.source||""}`;
+  }
+  document.getElementById("spx").textContent = spx ? `S&P 500 ${fmt(spx.val,0)}　近一月 ${chgText(spx.chg_1m,"%")}` : "";
+  document.getElementById("spx").hidden = !spx;
+  const stale = document.getElementById("stale");
+  stale.hidden = ageH < 72;
+  stale.textContent = `資料已超過 ${Math.floor(ageH/24)} 天未更新，請檢查 GitHub Actions`;
+}
+
+async function load(){
+  try{
+    const r = await fetch("data.json?ts="+Date.now(), {cache:"no-store"});
+    if (!r.ok) throw new Error(r.status);
+    DATA = await r.json();
+    render();
+  }catch(e){
+    document.getElementById("asof").textContent = "讀取 data.json 失敗，請確認 GitHub Pages 已啟用";
+  }
+}
+load();
+setInterval(load, 10*60*1000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) load(); });
+</script>
+
+</body>
+</html>
