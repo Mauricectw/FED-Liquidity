@@ -107,6 +107,42 @@ button:hover{border-color:var(--accent)}
 body{margin:0}
 @media (max-width:400px){.cards{grid-template-columns:1fr}}
 .cards{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+.chip.link{color:var(--accent);border-color:var(--accent);text-decoration:none;font-weight:500}
+.chip.link:hover{background:var(--inset)}
+.why{font-size:13.5px;border-top:1px dashed var(--line);padding-top:8px}
+.why summary{cursor:pointer;color:var(--accent);font-weight:500}
+.why p{margin:8px 0 6px}
+.why ul{margin:0;padding-left:1.2em;display:grid;gap:3px}
+.why a,.more,.rules a{color:var(--accent)}
+.more{font-size:13px;text-decoration:none;font-weight:500}
+.more:hover{text-decoration:underline}
+.sect{display:grid;gap:12px}
+.sect-hd{display:grid;gap:4px}
+.sect-hd h2{font-size:20px;font-weight:900}
+.sect-hd p,.hint{color:var(--muted);font-size:13.5px}
+.card.neutral{border-top-color:var(--accent)}
+.stage{display:grid;gap:4px;font-size:14px;background:var(--inset);border-radius:8px;padding:10px 12px}
+.stage b{color:var(--accent)}
+.rules{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rl{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--inset)}
+.rl .pill{min-width:56px;text-align:center}
+.rl .pill:not(.g):not(.y){background:var(--panel);color:var(--muted);border:1px solid var(--line)}
+.rl b{font-size:14.5px}
+.rl p{font-size:13.5px;margin-top:2px}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--muted)}
+.lg{display:inline-block;width:18px;height:0;border-top:2.5px solid;vertical-align:middle;margin-right:6px}
+.lg.g{border-color:var(--g)} .lg.y{border-color:var(--y)} .lg.n{border-color:var(--muted);border-top-style:dashed}
+.map-wrap{overflow-x:auto;background:var(--inset);border:1px solid var(--line);border-radius:12px}
+#map{display:block;width:100%;min-width:680px;height:auto}
+#map .edge{cursor:pointer;outline:none}
+#map .edge:hover path:nth-child(2),#map .edge:focus path:nth-child(2){stroke-width:3}
+#map .elb{font-size:11.5px;fill:var(--muted);font-family:var(--sans)}
+#map .edge.sel .elb{fill:var(--ink);font-weight:700}
+#map .nlb{font-size:13px;font-weight:700;fill:var(--ink);font-family:var(--sans)}
+#map .nv{font-size:12px;fill:var(--muted);font-family:var(--mono)}
+#map .nv.up,#map .nv.dn{fill:var(--ink);font-weight:700}
+.map-detail{display:grid;gap:8px;border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--panel)}
+.map-detail h3{font-size:16px}
 </style>
 
 </head>
@@ -120,6 +156,7 @@ body{margin:0}
       <span class="chip" id="asof">載入最新報價中…</span>
       <span class="chip" id="spx"></span>
       <span class="chip warn" id="stale" hidden></span>
+      <a class="chip link" href="notes.html">總經傳導筆記 →</a>
     </div>
   </header>
 
@@ -144,6 +181,37 @@ body{margin:0}
   </section>
 
   <section class="cards" id="cards" aria-label="五個指標"></section>
+
+  <section class="sect" aria-labelledby="h-rates">
+    <div class="sect-hd"><h2 id="h-rates">利率細看</h2><p>筆記裡一直用到的三個數字：短端、曲線形狀、實質利率。不亮燈，用來解釋上面的燈號。</p></div>
+    <div class="cards">
+      <article class="card neutral" id="rc-y2"><div class="card-hd"><div><h3>2 年期殖利率</h3><div class="role">短端：看 Fed</div></div></div>
+        <div class="fig"><span class="v num">—</span><span class="d num"></span></div><div class="sp"></div>
+        <p class="read">短端完全是在反映市場對 Fed 接下來一兩年利率的押注。短端上升，美元的利差吸引力提高。</p>
+        <a class="more" href="notes.html#short-long">短端與長端的差別 →</a><p class="src"></p></article>
+      <article class="card neutral" id="rc-curve"><div class="card-hd"><div><h3>10Y−2Y 利差</h3><div class="role">殖利率曲線的形狀</div></div></div>
+        <div class="fig"><span class="v num">—</span><span class="d num"></span></div><div class="sp"></div>
+        <p class="stage"><b id="curve-stage">—</b><span id="curve-text"></span></p>
+        <a class="more" href="notes.html#curve">殖利率曲線的四個階段 →</a><p class="src"></p></article>
+      <article class="card neutral" id="rc-real10"><div class="card-hd"><div><h3>10 年期 TIPS 實質利率</h3><div class="role">扣掉通膨預期的真實回報</div></div></div>
+        <div class="fig"><span class="v num">—</span><span class="d num"></span></div><div class="sp"></div>
+        <p class="read">實質利率 = 名目殖利率 − 通膨預期。TIPS 殖利率往上噴，黃金通常要倒大楣；往下掉，黃金容易噴出。</p>
+        <a class="more" href="notes.html#real-rate">實質利率的兩種劇本 →</a><p class="src"></p></article>
+    </div>
+  </section>
+
+  <section class="box" aria-labelledby="h-rules">
+    <div class="sect-hd"><h2 id="h-rules">今天應驗了哪幾條傳導</h2><p id="rules-sum"></p></div>
+    <p class="hint">用近一個月的變化，逐條比對筆記裡的傳導規則。「例外」不代表規則錯了，而是有更強的力量蓋過它，通常最值得研究。</p>
+    <ul class="rules" id="rules"></ul>
+  </section>
+
+  <section class="box" aria-labelledby="h-map">
+    <div class="sect-hd"><h2 id="h-map">傳導地圖</h2><p>方塊裡是近一個月的方向。點任何一條線，下面會說明這條傳導今天有沒有發生。</p></div>
+    <div class="legend"><span><i class="lg g"></i>應驗</span><span><i class="lg y"></i>例外</span><span><i class="lg n"></i>不明顯</span></div>
+    <div class="map-wrap"><svg id="map" viewBox="0 0 810 400" role="img" aria-label="總經傳導地圖"></svg></div>
+    <div class="map-detail" id="map-detail"></div>
+  </section>
 
   <section class="two">
     <div class="box">
@@ -254,6 +322,185 @@ function spark(vals){
     <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="var(--accent)"/></svg>`;
 }
 
+
+/* ───── 說明層：為什麼、今天應驗的傳導、傳導地圖 ───── */
+const WHY = {
+  vix:  {t:"VIX 是市場為「保險」付的價格。風險偏好下降時，資金會同時做兩件事：回收美元流動性（美元↑），以及買黃金避險（黃金↑）。所以看 VIX 時，要一起看美元和黃金有沒有跟著動。",
+         l:[["risk-dxy","風險偏好下降 → 美元↑"],["risk-gold","黃金的避險屬性"]]},
+  dxy:  {t:"美元強弱主要看兩件事：利差（美國利率相對較高，資金往美元停靠）和風險（恐慌時全球回收美元）。美元走強通常壓制黃金與原油，因為兩者都以美元計價；但供給型的油價上漲是例外。",
+         l:[["dxy","美元的兩個驅動力"],["dxy-gold","美元↑ → 黃金↓"],["dxy-oil","美元↑ → 原油↓（與例外）"],["y2-dxy","短端利率↑ → 美元↑"]]},
+  oil:  {t:"油價對通膨是推力、對成長是阻力。油價↑ 會推升 CPI／PCE 與通膨預期，讓 Fed 更偏鷹（2Y↑）；油價一直噴還會讓長債要求更多期限溢酬（10Y↑）。不論是怕通膨還是怕打仗，終點通常都是買美元。",
+         l:[["oil-cpi","油價↑ → 通膨預期↑"],["oil-y2","油價↑ → Fed 偏鷹 → 2Y↑"],["oil-y10","油價↑ → 期限溢酬 → 10Y↑"],["oil-dxy","油價↑ → 美元↑ 的兩種劇本"]]},
+  gold: {t:"黃金不生利息，最怕的是「實質利率」上升，以及美元同時走強。殖利率上漲但黃金也漲，通常代表通膨預期漲得更多、實質利率反而下降。股市跌、黃金漲，則代表資金在避險。",
+         l:[["gold","美元與實質利率一起走強，黃金就承壓"],["real-rate","實質利率 = 名目 − 通膨預期"],["real-gold","實質利率↑ → 黃金↓"]]},
+  y10:  {t:"短端（2Y）看 Fed，長端（10Y）看期限溢酬與供給。兩者背離時最值得注意：Fed 按兵不動、長端照樣狂噴，通常是財政赤字、發債量或通膨不確定性在推升期限溢酬。",
+         l:[["short-long","短端與長端的差別（借錢的比喻）"],["term-premium","期限溢酬的三個來源"],["curve","殖利率曲線的四個階段"]]}
+};
+const TH = {pct:0.5, gold:1, oil:3, bp:10};
+const up = (id,th)=>{ const v=DATA?.series[id]?.chg_1m; return has(v) && v>th; };
+const dn = (id,th)=>{ const v=DATA?.series[id]?.chg_1m; return has(v) && v<-th; };
+const known = (...ids)=> ids.every(id=>has(DATA?.series[id]?.chg_1m));
+const C = (id,u)=>{ const s=DATA.series[id]; return s? chgText(s.chg_1m,u):"—"; };
+const NA = {s:"na", t:"這項數據還在累積，下次自動更新後就會判讀。"};
+
+const RULES = [
+  {id:"r-dxy-gold", title:"美元↑ → 黃金↓", note:"dxy-gold", f(){
+    if(!known("dxy","gold")) return NA;
+    const d=`美元近一月 ${C("dxy","%")}、黃金 ${C("gold","%")}。`;
+    if(up("dxy",TH.pct)&&dn("gold",TH.gold)) return {s:"hit",t:d+"符合：強美元加上高利率的機會成本，壓住了金價。"};
+    if(up("dxy",TH.pct)&&up("gold",TH.gold)) return {s:"exc",t:d+"例外：兩者同漲，代表避險或通膨疑慮蓋過了美元的壓力。"};
+    if(dn("dxy",TH.pct)&&up("gold",TH.gold)) return {s:"hit",t:d+"反向也符合：美元轉弱，黃金得到支撐。"};
+    return {s:"none",t:d+"兩者都沒有明顯的方向。"};}},
+  {id:"r-dxy-oil", title:"美元↑ → 原油↓（供給型例外）", note:"dxy-oil", f(){
+    if(!known("dxy","oil")) return NA;
+    const d=`美元近一月 ${C("dxy","%")}、原油 ${C("oil","%")}。`;
+    if(up("dxy",TH.pct)&&dn("oil",TH.oil)) return {s:"hit",t:d+"符合：美元計價的壓制效果在發揮作用。"};
+    if(up("dxy",TH.pct)&&up("oil",TH.oil)) return {s:"exc",t:d+"例外：美元和油價一起漲，油價由供給面（地緣政治、減產、航運）主導，跟美元關係不大。"};
+    return {s:"none",t:d+"目前沒有明顯的美元壓制油價現象。"};}},
+  {id:"r-y2-dxy", title:"短端 2Y↑ → 美元↑", note:"y2-dxy", f(){
+    if(!known("y2","dxy")) return NA;
+    const d=`2Y 近一月 ${C("y2","bp")}、美元 ${C("dxy","%")}。`;
+    if(up("y2",TH.bp)&&up("dxy",TH.pct)) return {s:"hit",t:d+"符合：市場押注 Fed 偏鷹，利差擴大，資金回流美元。"};
+    if(up("y2",TH.bp)&&dn("dxy",TH.pct)) return {s:"exc",t:d+"例外：短端上升但美元轉弱，可能是其他國家升息更快，或市場擔心美國本身。"};
+    if(dn("y2",TH.bp)&&dn("dxy",TH.pct)) return {s:"hit",t:d+"反向也符合：降息預期升溫，美元轉弱。"};
+    return {s:"none",t:d+"短端沒有明顯變化。"};}},
+  {id:"r-oil-y2", title:"油價↑ → 通膨預期↑ → Fed 偏鷹 → 2Y↑", note:"oil-y2", f(){
+    if(!known("oil","y2")) return NA;
+    const d=`原油近一月 ${C("oil","%")}、2Y ${C("y2","bp")}。`;
+    if(up("oil",TH.oil)&&up("y2",TH.bp)) return {s:"hit",t:d+"符合：油價推升通膨預期，市場提高升息機率，短端先動。"};
+    if(up("oil",TH.oil)&&!up("y2",TH.bp)) return {s:"exc",t:d+"油價漲但短端沒跟：市場認為這波油價是暫時的，或 Fed 不會為此動作。"};
+    return {s:"none",t:d+"油價沒有明顯上漲。"};}},
+  {id:"r-term", title:"期限溢酬↑ → 長端漲得比短端多", note:"term-premium", f(){
+    if(!known("y10","y2")) return NA;
+    const gap = DATA.series.y10.chg_1m - DATA.series.y2.chg_1m;
+    const d=`10Y 近一月 ${C("y10","bp")}、2Y ${C("y2","bp")}。`;
+    if(up("y10",TH.bp)&&gap>5) return {s:"hit",t:d+`長端比短端多漲 ${Math.round(gap)}bp（熊市陡峭化）：推升長端的不是 Fed，而是期限溢酬，例如發債量、赤字或通膨不確定性。`};
+    if(up("y2",TH.bp)&&gap<-5) return {s:"hit",t:d+`短端漲得比長端多（平坦化）：這波是 Fed 預期在推，而不是期限溢酬。`};
+    return {s:"none",t:d+"長短端大致同步。"};}},
+  {id:"r-real", title:"殖利率上升是哪一種？（名目 = 實質 + 通膨預期）", note:"real-rate", f(){
+    if(!known("y10","real10")) return NA;
+    const n=DATA.series.y10.chg_1m, r=DATA.series.real10.chg_1m, be=n-r;
+    const d=`10Y 名目 ${C("y10","bp")}、實質（TIPS）${C("real10","bp")}，推算通膨預期 ${sgn(be)}${Math.round(be)}bp。`;
+    if(n>TH.bp && r>=be) return {s:"hit",t:d+"偏向劇本 B（實質緊縮型）：上漲主要來自實質利率，對黃金最不利。"};
+    if(n>TH.bp) return {s:"hit",t:d+"劇本 A（通膨型）：上漲主要來自通膨預期，實質利率漲得少，黃金不一定跌。"};
+    return {s:"none",t:d+"名目殖利率沒有明顯上升。"};}},
+  {id:"r-real-gold", title:"實質利率↑ → 黃金↓", note:"real-gold", f(){
+    if(!known("real10","gold")) return NA;
+    const d=`TIPS 實質利率近一月 ${C("real10","bp")}、黃金 ${C("gold","%")}。`;
+    if(up("real10",TH.bp)&&dn("gold",TH.gold)) return {s:"hit",t:d+"符合：持有黃金的機會成本上升。"};
+    if(up("real10",TH.bp)&&up("gold",TH.gold)) return {s:"exc",t:d+"例外：實質利率上升黃金卻漲，通常是避險或央行買盤在支撐。"};
+    if(dn("real10",TH.bp)&&up("gold",TH.gold)) return {s:"hit",t:d+"反向也符合：實質回報變差，黃金容易走強。"};
+    return {s:"none",t:d+"實質利率沒有明顯變化。"};}},
+  {id:"r-risk", title:"風險偏好下降 → 美元↑、黃金↑、股市↓", note:"risk-dxy", f(){
+    if(!known("vix","spx")) return NA;
+    const v=DATA.series.vix, d=`VIX ${fmt(v.val,1)}（近一月 ${C("vix","%")}）、S&P 500 ${C("spx","%")}。`;
+    const fear = v.val>20 || up("vix",15);
+    if(fear && dn("spx",2) && (up("gold",TH.gold)||up("dxy",TH.pct))) return {s:"hit",t:d+"符合：恐慌升溫，資金撤出股市、往美元或黃金避險。"};
+    if(fear) return {s:"exc",t:d+"情緒緊張，但資金還沒有明顯往避險資產移動。"};
+    return {s:"none",t:d+"情緒平穩，沒有避險潮。"};}},
+];
+
+function curveStage(){
+  const c=DATA.series.curve; if(!c) return {k:"—",t:"資料累積中。"};
+  const cm=c.chg_1m;
+  if (c.val<0) return {k:"第二階段｜過熱期（倒掛）",t:"10Y−2Y 為負，短端高於長端，代表市場預期景氣接近尾聲，資金開始陸續退出高風險資產。"};
+  if (has(cm) && cm>10 && dn("y2",TH.bp)) return {k:"第三階段｜衰退期（牛市陡峭化）",t:"短端因降息預期下跌、曲線變陡，債券的避險價值浮現，通常債優於股。"};
+  if (has(cm) && cm>10) return {k:"熊市陡峭化（期限溢酬推升）",t:"曲線變陡，但主要是長端在漲而非短端在跌，屬於期限溢酬型的壓力，不是典型的衰退期。"};
+  if (has(cm) && cm<-10) return {k:"第一階段｜成長期（走平）",t:"短端追上長端、曲線走平，通常是央行緩步升息的階段，股優於債。"};
+  if (c.val>1) return {k:"第四階段｜復甦期（偏陡）",t:"利差維持高檔、曲線偏陡，通常是寬鬆後的復甦階段，股債齊揚。"};
+  return {k:"曲線正常、變化不大",t:"利差為正但不大，最近一個月沒有明顯的平坦化或陡峭化。"};
+}
+
+const NODES = {
+  oil:  {x:90,  y:100, n:"原油",         id:"oil",  u:"%"},
+  infl: {x:300, y:100, n:"通膨預期",     id:null,   u:"bp"},
+  y2:   {x:510, y:100, n:"Fed／短端 2Y", id:"y2",   u:"bp"},
+  dxy:  {x:720, y:100, n:"美元 DXY",     id:"dxy",  u:"%"},
+  y10:  {x:300, y:230, n:"長端 10Y",     id:"y10",  u:"bp"},
+  risk: {x:510, y:230, n:"風險情緒 VIX", id:"vix",  u:"%"},
+  real: {x:300, y:360, n:"實質利率",     id:"real10", u:"bp"},
+  gold: {x:720, y:360, n:"黃金",         id:"gold", u:"%"},
+};
+// d：SVG 路徑；lx/ly/la：標籤位置與對齊
+const EDGES = [
+  {f:"oil", to:"infl", lb:"推升物價",  rule:"r-oil-y2",    note:"oil-cpi",   d:"M150 100L236 100", lx:195, ly:92, la:"middle"},
+  {f:"infl",to:"y2",   lb:"Fed 偏鷹",  rule:"r-oil-y2",    note:"oil-y2",    d:"M360 100L446 100", lx:405, ly:92, la:"middle"},
+  {f:"y2",  to:"dxy",  lb:"利差擴大",  rule:"r-y2-dxy",    note:"y2-dxy",    d:"M570 100L656 100", lx:615, ly:92, la:"middle"},
+  {f:"infl",to:"y10",  lb:"期限溢酬",  rule:"r-term",      note:"oil-y10",   d:"M300 123L300 203", lx:308, ly:168, la:"start"},
+  {f:"y10", to:"real", lb:"扣掉通膨預期", rule:"r-real",   note:"real-rate", d:"M300 253L300 333", lx:308, ly:298, la:"start"},
+  {f:"real",to:"gold", lb:"機會成本",  rule:"r-real-gold", note:"real-gold", d:"M360 360L656 360", lx:508, ly:352, la:"middle"},
+  {f:"dxy", to:"gold", lb:"計價壓制",  rule:"r-dxy-gold",  note:"dxy-gold",  d:"M720 123L720 333", lx:728, ly:232, la:"start"},
+  {f:"dxy", to:"oil",  lb:"計價壓制（供給型例外）", rule:"r-dxy-oil", note:"dxy-oil", d:"M720 77C720 18 90 18 90 73", lx:405, ly:30, la:"middle"},
+  {f:"risk",to:"dxy",  lb:"回收美元",  rule:"r-risk",      note:"risk-dxy",  d:"M560 207L690 124", lx:640, ly:176, la:"start"},
+  {f:"risk",to:"gold", lb:"避險買盤",  rule:"r-risk",      note:"risk-gold", d:"M560 253L690 336", lx:640, ly:290, la:"start"},
+];
+const ST = {hit:["應驗","g"], exc:["例外","y"], none:["不明顯",""], na:["累積中",""]};
+let selEdge = 0, ruleRes = {};
+
+function nodeChg(k){
+  const nd=NODES[k];
+  if (k==="infl"){ if(!known("y10","real10")) return null; return DATA.series.y10.chg_1m-DATA.series.real10.chg_1m; }
+  return DATA.series[nd.id]?.chg_1m ?? null;
+}
+function arrow(k){
+  const v=nodeChg(k); if(!has(v)) return "·";
+  const th = NODES[k].u==="bp"? TH.bp : (k==="oil"?TH.oil: k==="gold"?TH.gold: k==="risk"?10:TH.pct);
+  return v>th?"↑": v<-th?"↓":"→";
+}
+function drawMap(){
+  const W=120,H=46;
+  let s = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>`;
+  EDGES.forEach((e,i)=>{
+    const st=ruleRes[e.rule]?.s||"na", col= st==="hit"?"var(--g)": st==="exc"?"var(--y)":"var(--muted)";
+    s += `<g class="edge${i===selEdge?" sel":""}" data-i="${i}" tabindex="0" role="button" aria-label="${NODES[e.f].n} 到 ${NODES[e.to].n}：${e.lb}">
+      <path d="${e.d}" fill="none" stroke="transparent" stroke-width="16"/>
+      <path d="${e.d}" fill="none" stroke="${col}" stroke-width="${i===selEdge?3:1.8}" ${st==="none"||st==="na"?'stroke-dasharray="5 4"':''} marker-end="url(#ah)"/>
+      <text x="${e.lx}" y="${e.ly}" text-anchor="${e.la}" class="elb">${e.lb}</text></g>`;
+  });
+  Object.entries(NODES).forEach(([k,n])=>{
+    const v=nodeChg(k), a=arrow(k);
+    s += `<g class="node"><rect x="${n.x-W/2}" y="${n.y-H/2}" width="${W}" height="${H}" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="${n.x}" y="${n.y-4}" text-anchor="middle" class="nlb">${n.n}</text>
+      <text x="${n.x}" y="${n.y+14}" text-anchor="middle" class="nv ${a==="↑"?"up":a==="↓"?"dn":""}">${a} ${has(v)? chgText(v,n.u):"—"}</text></g>`;
+  });
+  const svg=document.getElementById("map");
+  svg.innerHTML=s;
+  svg.querySelectorAll(".edge").forEach(g=>{
+    const pick=()=>{ selEdge=+g.dataset.i; drawMap(); };
+    g.addEventListener("click",pick);
+    g.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();pick();} });
+  });
+  const e=EDGES[selEdge], r=ruleRes[e.rule]||NA, [lab,cls]=ST[r.s];
+  document.getElementById("map-detail").innerHTML = `
+    <div class="card-hd"><h3>${NODES[e.f].n} → ${NODES[e.to].n}</h3><span class="pill ${cls}">${lab}</span></div>
+    <p class="read">${r.t}</p>
+    <a class="more" href="notes.html#${e.note}">看完整筆記 →</a>`;
+}
+
+function renderLearn(){
+  RULES.forEach(r=>{ ruleRes[r.id]=r.f(); });
+  document.getElementById("rules").innerHTML = RULES.map(r=>{
+    const x=ruleRes[r.id], [lab,cls]=ST[x.s];
+    return `<li class="rl ${cls}"><span class="pill ${cls}">${lab}</span><div><b>${r.title}</b><p>${x.t} <a href="notes.html#${r.note}">筆記</a></p></div></li>`;}).join("");
+  const n = RULES.filter(r=>ruleRes[r.id].s==="hit").length, e = RULES.filter(r=>ruleRes[r.id].s==="exc").length;
+  document.getElementById("rules-sum").textContent = `${RULES.length} 條傳導中，${n} 條正在應驗、${e} 條出現例外。`;
+
+  const S=DATA.series;
+  [["y2","2 年期殖利率","短端：市場對 Fed 未來一兩年利率的押注","%"],
+   ["curve","10Y−2Y 利差","殖利率曲線的形狀，負值代表倒掛","%"],
+   ["real10","10 年期 TIPS 實質利率","扣掉通膨預期後的真實回報，黃金最怕它上升","%"]].forEach(([id,name,role])=>{
+    const s=S[id], el=document.getElementById("rc-"+id);
+    el.querySelector(".v").textContent = s? (id==="curve"&&s.val>0?"+":"")+fmt(s.val,2)+"%" : "—";
+    el.querySelector(".d").innerHTML = s? `近一月 <span class="${s.chg_1m>0?"up":s.chg_1m<0?"dn":""}">${chgText(s.chg_1m,"bp")}</span>`:"";
+    el.querySelector(".sp").innerHTML = s? spark(s.spark):"";
+    el.querySelector(".src").textContent = s? `${s.date}　${s.source||""}`:"資料累積中";
+  });
+  const cs=curveStage();
+  document.getElementById("curve-stage").textContent = cs.k;
+  document.getElementById("curve-text").textContent = cs.t;
+  drawMap();
+}
+
 const cardsEl = document.getElementById("cards");
 cardsEl.innerHTML = DEF.map(d=>`
   <article class="card" id="card-${d.id}">
@@ -265,6 +512,7 @@ cardsEl.innerHTML = DEF.map(d=>`
     <div id="s-${d.id}"></div>
     <p class="read" id="t-${d.id}"></p>
     <p class="rule">${d.rule}</p>
+    <details class="why"><summary>為什麼會這樣？</summary><p>${WHY[d.id].t}</p><ul>${WHY[d.id].l.map(([a,t])=>`<li><a href="notes.html#${a}">${t}</a></li>`).join("")}</ul></details>
     <p class="src" id="src-${d.id}"></p>
     ${d.cause?`<label class="sel" for="oil-cause">這波漲跌的主因（需自行判斷）<select id="oil-cause"><option value="supply">供給衝擊（地緣政治、減產）</option><option value="demand">需求增加（經濟擴張）</option></select></label>`:""}
   </article>`).join("") + `
@@ -362,6 +610,7 @@ function render(){
   const stale = document.getElementById("stale");
   stale.hidden = ageH < 72;
   stale.textContent = `資料已超過 ${Math.floor(ageH/24)} 天未更新，請檢查 GitHub Actions`;
+  renderLearn();
 }
 
 async function load(){

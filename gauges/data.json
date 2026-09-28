@@ -450,6 +450,30 @@
     7743.4102
    ],
    "source": "Yahoo Finance ^GSPC"
+  },
+  "y2": {
+   "val": 4.87,
+   "date": "2026-09-24",
+   "chg_1m": null,
+   "chg_1w": null,
+   "spark": [],
+   "source": "初始快照 FRED DGS2"
+  },
+  "curve": {
+   "val": 0.36,
+   "date": "2026-09-25",
+   "chg_1m": null,
+   "chg_1w": null,
+   "spark": [],
+   "source": "初始快照 FRED T10Y2Y"
+  },
+  "real10": {
+   "val": 2.85,
+   "date": "2026-09-24",
+   "chg_1m": null,
+   "chg_1w": null,
+   "spark": [],
+   "source": "初始快照 FRED DFII10"
   }
  }
 }

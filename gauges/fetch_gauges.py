@@ -8,7 +8,8 @@ fetch_gauges.py — 市場五儀表的資料抓取（GitHub Actions 排程執行
 
 資料來源：
   1. Yahoo Finance v8 chart（免 Key）：^VIX, DX-Y.NYB, CL=F, GC=F, ^TNX, ^GSPC
-  2. 備援：FRED fredgraph.csv（免 Key）：VIXCLS, DCOILWTICO, DGS10
+  2. FRED fredgraph.csv（免 Key）：DGS2（2 年期）、T10Y2Y（10Y−2Y 利差）、DFII10（10 年期 TIPS 實質利率）；
+     另作為 VIXCLS, DCOILWTICO, DGS10 的備援
   某項抓不到時沿用上一版 data.json 的數值，並標記 stale。
 
 僅用標準函式庫，無需 pip install。
@@ -32,7 +33,11 @@ SERIES = {
     "gold": ("GC=F",     None),
     "y10":  ("^TNX",     "DGS10"),
     "spx":  ("^GSPC",    None),
+    "y2":     (None, "DGS2"),
+    "curve":  (None, "T10Y2Y"),
+    "real10": (None, "DFII10"),
 }
+BP_KEYS = {"y10", "y2", "curve", "real10"}   # 利率類用 bp 表示變化
 MONTH, WEEK, SPARK = 21, 5, 66   # 交易日：約一個月、一週、三個月走勢
 
 def http_get(url, retries=3):
@@ -69,7 +74,7 @@ def summarize(key, pts):
     last_d, last = pts[-1]
     m = pts[-1 - MONTH][1] if len(pts) > MONTH else pts[0][1]
     w = pts[-1 - WEEK][1] if len(pts) > WEEK else pts[0][1]
-    if key == "y10":   # 殖利率用 bp
+    if key in BP_KEYS:   # 殖利率用 bp
         chg_m, chg_w = round((last - m) * 100, 1), round((last - w) * 100, 1)
     else:
         chg_m, chg_w = round((last / m - 1) * 100, 2), round((last / w - 1) * 100, 2)
@@ -87,9 +92,12 @@ def main():
     for key, (ysym, fid) in SERIES.items():
         item = None
         try:
+            if not ysym:
+                raise LookupError("無 Yahoo 代碼")
             item = summarize(key, yahoo_series(ysym)); item["source"] = "Yahoo Finance " + ysym
         except Exception as e:
-            print(f"[WARN] Yahoo {ysym}: {e}", file=sys.stderr)
+            if ysym:
+                print(f"[WARN] Yahoo {ysym}: {e}", file=sys.stderr)
             if fid:
                 try:
                     item = summarize(key, fred_series(fid)); item["source"] = "FRED " + fid
