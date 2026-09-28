@@ -8,7 +8,7 @@ fetch_gauges.py — 市場五儀表的資料抓取（GitHub Actions 排程執行
 
 資料來源：
   1. Yahoo Finance v8 chart（免 Key）：^VIX, DX-Y.NYB, CL=F, GC=F, ^TNX, ^GSPC
-  2. FRED fredgraph.csv（免 Key）：DGS2（2 年期）、T10Y2Y（10Y−2Y 利差）、DFII10（10 年期 TIPS 實質利率）；
+  2. FRED（有 FRED_API_KEY 用官方 API，沒有則用 fredgraph.csv）：DGS2（2 年期）、T10Y2Y（10Y−2Y 利差）、DFII10（10 年期 TIPS 實質利率）；
      另作為 VIXCLS, DCOILWTICO, DGS10 的備援
   某項抓不到時沿用上一版 data.json 的數值，並標記 stale。
 
@@ -41,12 +41,14 @@ SERIES = {
 BP_KEYS = {"y10", "y2", "curve", "real10"}   # 利率類用 bp 表示變化
 MONTH, WEEK, SPARK = 21, 5, 66   # 交易日：約一個月、一週、三個月走勢
 
-def http_get(url, retries=3):
+FRED_API_KEY = os.environ.get("FRED_API_KEY", "")   # 與流動性儀表板共用同一個 GitHub Secret
+
+def http_get(url, retries=3, timeout=TIMEOUT):
     last = None
     for i in range(retries):
         try:
             req = urllib.request.Request(url, headers=UA)
-            with urllib.request.urlopen(req, timeout=TIMEOUT, context=CTX) as r:
+            with urllib.request.urlopen(req, timeout=timeout, context=CTX) as r:
                 return r.read().decode("utf-8", errors="replace")
         except Exception as e:
             last = e
@@ -64,10 +66,23 @@ def yahoo_series(symbol):
             out.append((datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%d"), float(c)))
     return out
 
-def fred_series(series_id):
-    txt = http_get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + series_id)
+def fred_api(series_id, **params):
+    """FRED 官方 API（需 FRED_API_KEY），GitHub Actions 上比 fredgraph.csv 穩定"""
+    url = ("https://api.stlouisfed.org/fred/series/observations?" + urllib.parse.urlencode(
+        {"series_id": series_id, "api_key": FRED_API_KEY, "file_type": "json", **params}))
+    obs = json.loads(http_get(url, retries=2, timeout=20))["observations"]
+    return [(o["date"], float(o["value"])) for o in obs if o["value"] not in (".", "")]
+
+def fred_csv(series_id, extra=""):
+    """備援：fredgraph.csv（免 Key），在部分雲端主機上會很慢，所以只試一次"""
+    txt = http_get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + series_id + extra, retries=1, timeout=15)
     rows = list(csv.reader(io.StringIO(txt)))[1:]
-    return [(d, float(v)) for d, v in rows[-200:] if v not in (".", "")]
+    return [(d, float(v)) for d, v in rows if v not in (".", "")]
+
+def fred_series(series_id):
+    if FRED_API_KEY:
+        return fred_api(series_id, sort_order="desc", limit=200)[::-1]
+    return fred_csv(series_id)[-200:]
 
 # 筆記頁的歷史圖（FRED 月資料）。mode：level＝原值、yoy＝年增率 %、diff＝月增減
 MACRO = {
@@ -84,10 +99,11 @@ MACRO = {
 MACRO_START = "2014-01-01"
 
 def fred_monthly(series_id):
-    txt = http_get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + series_id
-                   + "&cosd=" + MACRO_START + "&fq=Monthly&fam=avg")
-    rows = list(csv.reader(io.StringIO(txt)))[1:]
-    return [(d[:7], float(v)) for d, v in rows if v not in (".", "")]
+    if FRED_API_KEY:
+        pts = fred_api(series_id, observation_start=MACRO_START, frequency="m", aggregation_method="avg")
+    else:
+        pts = fred_csv(series_id, "&cosd=" + MACRO_START + "&fq=Monthly&fam=avg")
+    return [(d[:7], v) for d, v in pts]
 
 def build_macro():
     try:

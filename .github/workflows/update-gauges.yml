@@ -19,6 +19,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +28,8 @@ jobs:
           python-version: "3.12"
 
       - name: Fetch latest quotes
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python gauges/fetch_gauges.py
 
       - name: Commit updated data
