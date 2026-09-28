@@ -21,6 +21,11 @@
   header h1{font-size:22px;font-weight:900;letter-spacing:.04em}
   header h1 span{color:var(--cyan)}
   .asof{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+  .xlink{display:inline-flex;align-items:baseline;gap:8px;padding:4px 12px;border:1px solid var(--cyan);border-radius:999px;
+    color:var(--cyan);text-decoration:none;font-size:13px;font-weight:700;transition:background .2s}
+  .xlink small{color:var(--muted);font-weight:400;font-size:11.5px}
+  .xlink:hover,.xlink:focus-visible{background:rgba(90,200,232,.12);outline:none}
+  @media (max-width:600px){.xlink small{display:none}}
   #regimeBanner{margin:14px 0 18px;border-radius:10px;padding:14px 18px;font-weight:700;font-size:15px;
     border:1px solid var(--edge);background:var(--panel);display:flex;align-items:center;gap:12px;transition:all .35s;
     position:relative;cursor:help}
@@ -113,6 +118,7 @@
 
 <header>
   <h1> <span>LIQUIDITY WAR ROOM</span></h1>
+  <a class="xlink" href="gauges/" title="流動性是源頭，五儀表看市場價格怎麼反應">市場五儀表 → <small>VIX・美元・原油・黃金・10Y 紅黃綠燈</small></a>
   <div class="asof">資料基準：<span id="asof">2026-07-01（H.4.1 週均）</span></div>
 </header>
 
